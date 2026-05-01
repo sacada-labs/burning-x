@@ -1,87 +1,200 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { getUserActivePlan, getUserPlanSchedule } from "#/lib/plans.ts";
+import { Target, Calendar, TrendingUp, ArrowRight } from "lucide-react";
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute("/")({
+	component: HomePage,
+	loader: async () => {
+		const activePlan = await getUserActivePlan();
+		if (!activePlan) return { activePlan: null, schedule: null };
 
-function App() {
-  return (
-    <main className="page-wrap px-4 pb-8 pt-14">
-      <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-14">
-        <div className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(79,184,178,0.32),transparent_66%)]" />
-        <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(47,106,74,0.18),transparent_66%)]" />
-        <p className="island-kicker mb-3">TanStack Start Base Template</p>
-        <h1 className="display-title mb-5 max-w-3xl text-4xl leading-[1.02] font-bold tracking-tight text-[var(--sea-ink)] sm:text-6xl">
-          Start simple, ship quickly.
-        </h1>
-        <p className="mb-8 max-w-2xl text-base text-[var(--sea-ink-soft)] sm:text-lg">
-          This base starter intentionally keeps things light: two routes, clean
-          structure, and the essentials you need to build from scratch.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <a
-            href="/about"
-            className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-5 py-2.5 text-sm font-semibold text-[var(--lagoon-deep)] no-underline transition hover:-translate-y-0.5 hover:bg-[rgba(79,184,178,0.24)]"
-          >
-            About This Starter
-          </a>
-          <a
-            href="https://tanstack.com/router"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full border border-[rgba(23,58,64,0.2)] bg-white/50 px-5 py-2.5 text-sm font-semibold text-[var(--sea-ink)] no-underline transition hover:-translate-y-0.5 hover:border-[rgba(23,58,64,0.35)]"
-          >
-            Router Guide
-          </a>
-        </div>
-      </section>
+		const schedule = await getUserPlanSchedule({ data: activePlan.id });
+		return { activePlan, schedule };
+	},
+});
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          [
-            'Type-Safe Routing',
-            'Routes and links stay in sync across every page.',
-          ],
-          [
-            'Server Functions',
-            'Call server code from your UI without creating API boilerplate.',
-          ],
-          [
-            'Streaming by Default',
-            'Ship progressively rendered responses for faster experiences.',
-          ],
-          [
-            'Tailwind Native',
-            'Design quickly with utility-first styling and reusable tokens.',
-          ],
-        ].map(([title, desc], index) => (
-          <article
-            key={title}
-            className="island-shell feature-card rise-in rounded-2xl p-5"
-            style={{ animationDelay: `${index * 90 + 80}ms` }}
-          >
-            <h2 className="mb-2 text-base font-semibold text-[var(--sea-ink)]">
-              {title}
-            </h2>
-            <p className="m-0 text-sm text-[var(--sea-ink-soft)]">{desc}</p>
-          </article>
-        ))}
-      </section>
+const distanceLabels: Record<string, string> = {
+	"5k": "5K",
+	"10k": "10K",
+	half_marathon: "Half Marathon",
+	marathon: "Marathon",
+};
 
-      <section className="island-shell mt-8 rounded-2xl p-6">
-        <p className="island-kicker mb-2">Quick Start</p>
-        <ul className="m-0 list-disc space-y-2 pl-5 text-sm text-[var(--sea-ink-soft)]">
-          <li>
-            Edit <code>src/routes/index.tsx</code> to customize the home page.
-          </li>
-          <li>
-            Update <code>src/components/Header.tsx</code> and{' '}
-            <code>src/components/Footer.tsx</code> for brand links.
-          </li>
-          <li>
-            Add routes in <code>src/routes</code> and tweak visual tokens in{' '}
-            <code>src/styles.css</code>.
-          </li>
-        </ul>
-      </section>
-    </main>
-  )
+function HomePage() {
+	const { activePlan, schedule } = Route.useLoaderData();
+
+	if (!activePlan || !schedule) {
+		return (
+			<main className="max-w-4xl mx-auto px-4 py-16">
+				<div className="text-center">
+					<h1 className="text-4xl font-bold tracking-tight mb-4">
+						Your Running Journey Starts Here
+					</h1>
+					<p className="text-lg text-neutral-500 dark:text-neutral-400 mb-8 max-w-xl mx-auto">
+						Pick a training plan and start working toward your goal. From your
+						first 5K to your first marathon.
+					</p>
+					<Link
+						to="/plans"
+						className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-50 dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors"
+					>
+						<Target className="h-4 w-4" />
+						Browse Training Plans
+					</Link>
+				</div>
+
+				<div className="mt-16 grid gap-6 sm:grid-cols-3">
+					{[
+						{
+							title: "Structured Plans",
+							desc: "Follow proven training plans designed by running coaches for 5K, 10K, half marathon, and marathon distances.",
+						},
+						{
+							title: "Track Progress",
+							desc: "Log every workout, see your completion rate, and watch yourself get closer to race day.",
+						},
+						{
+							title: "Stay Consistent",
+							desc: "A clear weekly schedule keeps you accountable and builds habits that lead to results.",
+						},
+					].map((feature) => (
+						<div
+							key={feature.title}
+							className="p-6 border border-neutral-200 dark:border-neutral-800"
+						>
+							<h3 className="font-semibold mb-2">{feature.title}</h3>
+							<p className="text-sm text-neutral-500 dark:text-neutral-400">
+								{feature.desc}
+							</p>
+						</div>
+					))}
+				</div>
+			</main>
+		);
+	}
+
+	const { userPlan, workouts } = schedule;
+	const completedCount = workouts.filter((w) => w.completed).length;
+	const totalCount = workouts.length;
+	const progressPercent = Math.round((completedCount / totalCount) * 100);
+
+	// Get this week's workouts
+	const today = new Date();
+	const daysSinceStart = Math.floor(
+		(today.getTime() - new Date(userPlan.startDate).getTime()) /
+			(1000 * 60 * 60 * 24),
+	);
+	const currentWeek = Math.min(
+		Math.floor(daysSinceStart / 7) + 1,
+		activePlan.plan.durationWeeks,
+	);
+	const thisWeekWorkouts = workouts.filter((w) => w.weekNumber === currentWeek);
+	const thisWeekCompleted = thisWeekWorkouts.filter((w) => w.completed).length;
+
+	// Upcoming workout (first incomplete)
+	const upcomingWorkout = workouts.find((w) => !w.completed);
+
+	return (
+		<main className="max-w-4xl mx-auto px-4 py-8">
+			<div className="mb-8">
+				<h1 className="text-3xl font-bold tracking-tight mb-2">Dashboard</h1>
+				<p className="text-neutral-500 dark:text-neutral-400">
+					{activePlan.plan.name} ·{" "}
+					{distanceLabels[activePlan.plan.distanceType] ||
+						activePlan.plan.distanceType}
+				</p>
+			</div>
+
+			<div className="grid gap-4 sm:grid-cols-3 mb-8">
+				<div className="p-4 border border-neutral-200 dark:border-neutral-800">
+					<div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 mb-2">
+						<TrendingUp className="h-4 w-4" />
+						<span className="text-xs font-medium uppercase tracking-wider">
+							Overall Progress
+						</span>
+					</div>
+					<div className="text-2xl font-bold">{progressPercent}%</div>
+					<div className="text-xs text-neutral-500 dark:text-neutral-400">
+						{completedCount} of {totalCount} workouts
+					</div>
+				</div>
+
+				<div className="p-4 border border-neutral-200 dark:border-neutral-800">
+					<div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 mb-2">
+						<Calendar className="h-4 w-4" />
+						<span className="text-xs font-medium uppercase tracking-wider">
+							This Week
+						</span>
+					</div>
+					<div className="text-2xl font-bold">
+						{thisWeekCompleted}/{thisWeekWorkouts.length}
+					</div>
+					<div className="text-xs text-neutral-500 dark:text-neutral-400">
+						Week {currentWeek} of {activePlan.plan.durationWeeks}
+					</div>
+				</div>
+
+				<div className="p-4 border border-neutral-200 dark:border-neutral-800">
+					<div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 mb-2">
+						<Target className="h-4 w-4" />
+						<span className="text-xs font-medium uppercase tracking-wider">
+							Weeks Left
+						</span>
+					</div>
+					<div className="text-2xl font-bold">
+						{activePlan.plan.durationWeeks - currentWeek + 1}
+					</div>
+					<div className="text-xs text-neutral-500 dark:text-neutral-400">
+						until race day
+					</div>
+				</div>
+			</div>
+
+			{upcomingWorkout && (
+				<div className="border border-neutral-200 dark:border-neutral-800 p-6 mb-8">
+					<div className="flex items-center justify-between mb-4">
+						<div>
+							<p className="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-1">
+								Next Workout
+							</p>
+							<h2 className="text-xl font-semibold">{upcomingWorkout.title}</h2>
+							<p className="text-sm text-neutral-500 dark:text-neutral-400">
+								Week {upcomingWorkout.weekNumber} · Day{" "}
+								{upcomingWorkout.dayNumber}
+								{upcomingWorkout.distanceKm &&
+									` · ${upcomingWorkout.distanceKm}K`}
+								{upcomingWorkout.durationMinutes &&
+									` · ${upcomingWorkout.durationMinutes} min`}
+							</p>
+						</div>
+						<Link
+							to="/workouts/$workoutId"
+							search={{ userPlanId: userPlan.id }}
+							params={{ workoutId: String(upcomingWorkout.id) }}
+							className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-50 dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors"
+						>
+							Start
+							<ArrowRight className="h-4 w-4" />
+						</Link>
+					</div>
+				</div>
+			)}
+
+			<div className="flex items-center gap-4">
+				<Link
+					to="/schedule"
+					className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+				>
+					<Calendar className="h-4 w-4" />
+					View Full Schedule
+				</Link>
+				<Link
+					to="/plans"
+					className="text-sm text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
+				>
+					Browse other plans
+				</Link>
+			</div>
+		</main>
+	);
 }
