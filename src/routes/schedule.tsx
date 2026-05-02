@@ -87,8 +87,7 @@ function SchedulePage() {
 			<div className="max-w-4xl mx-auto px-4 py-16 text-center">
 				<h1 className="text-2xl font-bold mb-4">No Active Plan</h1>
 				<p className="text-[var(--muted-foreground)] mb-6">
-					You don't have an active training plan. Browse our plans and start
-					your journey.
+					No active plan right now. Pick one and start training.
 				</p>
 				<Link
 					to="/plans"
@@ -246,8 +245,8 @@ function SchedulePage() {
 
 				{startWeek > 1 && (
 					<div className="mb-4 px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] text-sm rounded">
-						<strong className="capitalize">{fitnessLevel}</strong> fitness
-						level. Your training starts at a higher intensity.
+						<strong className="capitalize">{fitnessLevel}</strong> level.
+						Starting at a higher week.
 					</div>
 				)}
 
@@ -410,7 +409,7 @@ function SchedulePage() {
 															disabled={isLoading}
 															className="px-2 py-1 text-[10px] font-medium text-red-600 dark:text-red-400 border border-[var(--border)] hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 rounded"
 														>
-															{isLoading ? "..." : "Uncomplete"}
+															{isLoading ? "..." : "Undo"}
 														</button>
 													</div>
 												)}

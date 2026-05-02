@@ -59,8 +59,7 @@ function OnboardingPage() {
 						Welcome to burning-x
 					</h1>
 					<p className="text-[var(--muted-foreground)] mb-8">
-						Help us personalize your experience. This information is only used
-						to tailor your training plans.
+						We use this to set up your plans. Nothing else.
 					</p>
 
 					<div className="grid gap-4">
@@ -135,10 +134,10 @@ function OnboardingPage() {
 			{step === 2 && (
 				<div className="text-center">
 					<h1 className="text-2xl font-bold tracking-tight mb-2">
-						You are all set
+						You're all set
 					</h1>
 					<p className="text-[var(--muted-foreground)] mb-8">
-						Your profile is saved. Choose a training plan to get started.
+						Profile saved. Pick a plan and start running.
 					</p>
 					<Link
 						to="/plans"

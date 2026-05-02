@@ -49,16 +49,14 @@ function HistoryPage() {
 			<div className="mb-8">
 				<h1 className="text-3xl font-bold tracking-tight mb-2">History</h1>
 				<p className="text-[var(--muted-foreground)]">
-					Your training plans and progress.
+					Plans you've started or finished.
 				</p>
 			</div>
 
 			{localHistory.length === 0 ? (
 				<div className="text-center py-16">
 					<AlertTriangle className="h-8 w-8 mx-auto mb-4 text-[var(--muted-foreground)]" />
-					<p className="text-[var(--muted-foreground)] mb-4">
-						You haven't enrolled in any plans yet.
-					</p>
+					<p className="text-[var(--muted-foreground)] mb-4">No plans yet.</p>
 					<Link
 						to="/plans"
 						className="inline-flex items-center px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
@@ -88,7 +86,7 @@ function HistoryPage() {
 														: "bg-[var(--muted)] border-[var(--border)] text-[var(--muted-foreground)]"
 												}`}
 											>
-												{isActive ? "Active" : "Abandoned"}
+												{isActive ? "Active" : "Stopped"}
 											</span>
 										</div>
 										<div className="flex flex-wrap items-center gap-3 text-sm text-[var(--muted-foreground)]">

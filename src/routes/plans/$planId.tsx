@@ -100,7 +100,7 @@ function PlanDetailPage() {
 			const activeCount = await getActivePlanCount();
 			if (activeCount >= 2) {
 				setEnrollError(
-					"You can only have 2 active plans at a time. Please unenroll from one first.",
+					"You can only run 2 plans at once. Drop one first if you want to start another.",
 				);
 				setEnrolling(false);
 				return;
@@ -237,17 +237,17 @@ function PlanDetailPage() {
 						</div>
 						{enrollmentResult && enrollmentResult.startWeek > 1 && (
 							<div className="px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] text-sm rounded">
-								<p className="font-medium mb-1">Your plan has been adapted</p>
+								<p className="font-medium mb-1">Plan adjusted</p>
 								<p className="text-[var(--muted-foreground)]">
-									Based on your assessment, you were rated as{" "}
+									We put you at{" "}
 									<strong className="capitalize text-[var(--foreground)]">
 										{enrollmentResult.fitnessLevel}
-									</strong>
-									. Your training starts at{" "}
-									<strong className="text-[var(--foreground)]">
-										Week {enrollmentResult.startWeek}
 									</strong>{" "}
-									instead of Week 1.
+									level. Training starts at week{" "}
+									<strong className="text-[var(--foreground)]">
+										{enrollmentResult.startWeek}
+									</strong>
+									.
 								</p>
 							</div>
 						)}
@@ -322,8 +322,7 @@ function PlanDetailPage() {
 							</button>
 						</div>
 						<p className="text-sm text-[var(--muted-foreground)] mb-6">
-							Help us personalize your plan by answering a few quick questions
-							about your current fitness.
+							A few quick questions so we can set the plan to your level.
 						</p>
 
 						<div className="mb-6">

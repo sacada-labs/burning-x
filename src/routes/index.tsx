@@ -68,8 +68,8 @@ function HomePage() {
 					Your personal running coach.
 				</h1>
 				<p className="text-lg text-[var(--muted-foreground)] mb-10 max-w-md">
-					Structured training plans for 5K, 10K, half marathon, and marathon.
-					Log workouts and track your progress.
+					Training plans for 5K through marathon. Log workouts, mark them done,
+					see how far you've gone.
 				</p>
 				<Link
 					to="/auth"
@@ -90,7 +90,7 @@ function HomePage() {
 						Welcome back{userName ? `, ${userName}` : ""}
 					</h1>
 					<p className="text-lg text-[var(--muted-foreground)] mb-8 max-w-xl mx-auto">
-						Pick a training plan and start working toward your goal.
+						Pick a plan and get moving.
 					</p>
 					<Link
 						to="/plans"
@@ -155,7 +155,7 @@ function HomePage() {
 							Plan Complete
 						</h2>
 						<p className="text-sm text-green-700 dark:text-green-500 mb-4">
-							You finished {activePlan.plan.name}. Great work.
+							You finished {activePlan.plan.name}. Nice work.
 						</p>
 						<Link
 							to="/plans"
@@ -209,9 +209,7 @@ function HomePage() {
 					<div className="text-2xl font-bold">
 						{totalDistanceKm.toFixed(1)}K
 					</div>
-					<div className="text-xs text-[var(--muted-foreground)]">
-						total run
-					</div>
+					<div className="text-xs text-[var(--muted-foreground)]">total</div>
 				</div>
 
 				<div className="p-4 border border-[var(--border)] rounded">
@@ -222,9 +220,7 @@ function HomePage() {
 						</span>
 					</div>
 					<div className="text-2xl font-bold">{estimatedCalories}</div>
-					<div className="text-xs text-[var(--muted-foreground)]">
-						estimated burned
-					</div>
+					<div className="text-xs text-[var(--muted-foreground)]">approx.</div>
 				</div>
 			</div>
 		</div>

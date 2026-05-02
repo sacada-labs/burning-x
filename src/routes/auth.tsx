@@ -1,28 +1,28 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
-import { authClient } from '#/lib/auth-client'
-import { getUserProfile } from '#/lib/plans.ts'
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { authClient } from "#/lib/auth-client";
+import { getUserProfile } from "#/lib/plans.ts";
 
-export const Route = createFileRoute('/auth')({
+export const Route = createFileRoute("/auth")({
 	component: AuthPage,
-})
+});
 
 function AuthPage() {
-	const { data: session, isPending } = authClient.useSession()
-	const [isSignUp, setIsSignUp] = useState(false)
-	const [email, setEmail] = useState('')
-	const [password, setPassword] = useState('')
-	const [name, setName] = useState('')
-	const [error, setError] = useState('')
-	const [loading, setLoading] = useState(false)
-	const [signedUp, setSignedUp] = useState(false)
+	const { data: session, isPending } = authClient.useSession();
+	const [isSignUp, setIsSignUp] = useState(false);
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [name, setName] = useState("");
+	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [signedUp, setSignedUp] = useState(false);
 
 	if (isPending) {
 		return (
 			<div className="flex items-center justify-center py-10">
 				<div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--foreground)]" />
 			</div>
-		)
+		);
 	}
 
 	if (session?.user) {
@@ -30,24 +30,24 @@ function AuthPage() {
 			<div className="max-w-md mx-auto px-4 py-16 text-center">
 				<h1 className="text-2xl font-bold mb-4">Welcome back</h1>
 				<p className="text-[var(--muted-foreground)] mb-6">
-					You are signed in as {session.user.email}
+					Signed in as {session.user.email}
 				</p>
 				<button
 					onClick={() => {
-						void authClient.signOut()
+						void authClient.signOut();
 					}}
 					className="px-4 py-2 text-sm font-medium border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors rounded"
 				>
 					Sign out
 				</button>
 			</div>
-		)
+		);
 	}
 
 	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault()
-		setError('')
-		setLoading(true)
+		e.preventDefault();
+		setError("");
+		setLoading(true);
 
 		try {
 			if (isSignUp) {
@@ -55,43 +55,42 @@ function AuthPage() {
 					email,
 					password,
 					name,
-				})
+				});
 				if (result.error) {
-					setError(result.error.message || 'Sign up failed')
+					setError(result.error.message || "Sign up failed");
 				} else {
-					setSignedUp(true)
+					setSignedUp(true);
 				}
 			} else {
 				const result = await authClient.signIn.email({
 					email,
 					password,
-				})
+				});
 				if (result.error) {
-					setError(result.error.message || 'Sign in failed')
+					setError(result.error.message || "Sign in failed");
 				} else {
 					// Check if user has profile, redirect accordingly
-					const profile = await getUserProfile()
+					const profile = await getUserProfile();
 					if (!profile) {
-						window.location.href = '/onboarding'
+						window.location.href = "/onboarding";
 					} else {
-						window.location.href = '/'
+						window.location.href = "/";
 					}
 				}
 			}
 		} catch (err) {
-			setError('An unexpected error occurred')
+			setError("An unexpected error occurred");
 		} finally {
-			setLoading(false)
+			setLoading(false);
 		}
-	}
+	};
 
 	if (signedUp) {
 		return (
 			<div className="max-w-md mx-auto px-4 py-16 text-center">
 				<h1 className="text-2xl font-bold mb-4">Account created</h1>
 				<p className="text-[var(--muted-foreground)] mb-8">
-					Welcome to burning-x. Let us set up your profile before you start
-					training.
+					Welcome. Let's set up your profile before you start training.
 				</p>
 				<Link
 					to="/onboarding"
@@ -100,18 +99,16 @@ function AuthPage() {
 					Set Up Profile
 				</Link>
 			</div>
-		)
+		);
 	}
 
 	return (
 		<div className="max-w-md mx-auto px-4 py-16">
 			<h1 className="text-2xl font-bold tracking-tight mb-2">
-				{isSignUp ? 'Create an account' : 'Sign in'}
+				{isSignUp ? "Create an account" : "Sign in"}
 			</h1>
 			<p className="text-sm text-[var(--muted-foreground)] mb-8">
-				{isSignUp
-					? 'Enter your information to create an account'
-					: 'Enter your email below to login to your account'}
+				{isSignUp ? "Create your account" : "Email and password to sign in"}
 			</p>
 
 			<form onSubmit={handleSubmit} className="grid gap-4">
@@ -174,7 +171,7 @@ function AuthPage() {
 					disabled={loading}
 					className="w-full h-9 px-4 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed rounded"
 				>
-					{loading ? 'Please wait...' : isSignUp ? 'Create account' : 'Sign in'}
+					{loading ? "Please wait..." : isSignUp ? "Create account" : "Sign in"}
 				</button>
 			</form>
 
@@ -182,16 +179,16 @@ function AuthPage() {
 				<button
 					type="button"
 					onClick={() => {
-						setIsSignUp(!isSignUp)
-						setError('')
+						setIsSignUp(!isSignUp);
+						setError("");
 					}}
 					className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
 				>
 					{isSignUp
-						? 'Already have an account? Sign in'
+						? "Already have an account? Sign in"
 						: "Don't have an account? Sign up"}
 				</button>
 			</div>
 		</div>
-	)
+	);
 }

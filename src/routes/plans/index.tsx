@@ -1,34 +1,34 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import { getTrainingPlans } from '#/lib/plans.ts'
-import { getAuthSession } from '#/lib/auth-server.ts'
-import { Clock, Target, Zap } from 'lucide-react'
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { getTrainingPlans } from "#/lib/plans.ts";
+import { getAuthSession } from "#/lib/auth-server.ts";
+import { Clock, Target, Zap } from "lucide-react";
 
-export const Route = createFileRoute('/plans/')({
+export const Route = createFileRoute("/plans/")({
 	component: PlansPage,
 	loader: async () => {
-		const session = await getAuthSession()
+		const session = await getAuthSession();
 		if (!session?.user) {
-			throw redirect({ to: '/auth' })
+			throw redirect({ to: "/auth" });
 		}
-		return getTrainingPlans()
+		return getTrainingPlans();
 	},
-})
+});
 
 const distanceLabels: Record<string, string> = {
-	'5k': '5K',
-	'10k': '10K',
-	'half_marathon': 'Half Marathon',
-	'marathon': 'Marathon',
-}
+	"5k": "5K",
+	"10k": "10K",
+	half_marathon: "Half Marathon",
+	marathon: "Marathon",
+};
 
 const difficultyLabels: Record<string, string> = {
-	beginner: 'Beginner',
-	intermediate: 'Intermediate',
-	advanced: 'Advanced',
-}
+	beginner: "Beginner",
+	intermediate: "Intermediate",
+	advanced: "Advanced",
+};
 
 function PlansPage() {
-	const plans = Route.useLoaderData()
+	const plans = Route.useLoaderData();
 
 	return (
 		<div className="max-w-4xl mx-auto px-4 py-8">
@@ -37,8 +37,8 @@ function PlansPage() {
 					Training Plans
 				</h1>
 				<p className="text-[var(--muted-foreground)]">
-					Choose a plan tailored to your goal. From your first 5K to your first
-					marathon.
+					Pick a plan that matches what you're after. First 5K, first marathon,
+					or somewhere in between.
 				</p>
 			</div>
 
@@ -81,5 +81,5 @@ function PlansPage() {
 				))}
 			</div>
 		</div>
-	)
+	);
 }

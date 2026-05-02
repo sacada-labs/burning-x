@@ -11,9 +11,8 @@ function About() {
 				About burning-x
 			</h1>
 			<p className="text-[var(--muted-foreground)] mb-6 leading-relaxed">
-				burning-x is a personal running coach in your pocket. Choose a training
-				plan tailored to your goal — whether it is your first 5K or your first
-				marathon — and follow a structured schedule designed to get you there.
+				burning-x is a simple running log with built-in training plans. Pick a
+				distance, follow the schedule, mark workouts done. That's it.
 			</p>
 
 			<h2 className="text-xl font-semibold mb-3">How it works</h2>
