@@ -140,6 +140,14 @@ bun db:studio    # Open Drizzle Studio
 - Re-seeding updates existing plans by deleting old workouts and re-inserting with auto-generated titles.
 - Run with: `npx tsx scripts/seed-plans.ts`
 
+## Auth Setup
+
+### Google OAuth
+- Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `.env.local`.
+- In Google Cloud Console, create an OAuth 2.0 Client ID (Web application).
+- Set the authorized redirect URI to `http://localhost:3000/api/auth/callback/google` (or your production domain).
+- Better Auth handles the rest via `socialProviders.google` in `src/lib/auth.ts`.
+
 ## Build Checklist
 
 Before committing, always:
