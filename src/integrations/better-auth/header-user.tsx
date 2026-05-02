@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { authClient } from "#/lib/auth-client";
 import { Link } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
 
 export default function BetterAuthHeader() {
 	const { data: session, isPending } = authClient.useSession();
@@ -35,9 +36,10 @@ export default function BetterAuthHeader() {
 					onClick={() => {
 						void authClient.signOut();
 					}}
-					className="h-9 px-4 text-sm font-medium bg-[var(--background)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors rounded"
+					className="inline-flex h-9 w-9 items-center justify-center rounded border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors"
+					aria-label="Sign out"
 				>
-					Sign out
+					<LogOut className="h-4 w-4" />
 				</button>
 			</div>
 		);
