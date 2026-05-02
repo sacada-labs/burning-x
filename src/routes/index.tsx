@@ -210,7 +210,7 @@ function HomePage() {
 				</div>
 			)}
 
-			<div className="flex items-center gap-4">
+			<div className="flex items-center gap-3">
 				<Link
 					to="/schedule"
 					className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors rounded"
@@ -220,9 +220,10 @@ function HomePage() {
 				</Link>
 				<Link
 					to="/plans"
-					className="inline-flex items-center text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+					className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
 				>
-					Browse other plans
+					<Target className="h-4 w-4" />
+					Browse Plans
 				</Link>
 			</div>
 		</div>
