@@ -128,11 +128,16 @@ function HomePage() {
 	return (
 		<div className="max-w-4xl mx-auto px-4 py-8">
 			<div className="mb-8">
-				<div className="flex items-center gap-3 mb-2">
-					<h1 className="text-3xl font-bold tracking-tight">
-						Dashboard{userName ? `, ${userName}` : ""}
+				<div className="flex items-start gap-3 mb-2">
+					<h1 className="text-3xl font-bold tracking-tight min-w-0">
+						<span className="block">Dashboard</span>
+						{userName && (
+							<span className="block text-lg text-[var(--muted-foreground)] truncate">
+								{userName}
+							</span>
+						)}
 					</h1>
-					<span className="inline-flex items-center px-2 py-0.5 text-xs font-medium border border-[var(--border)] capitalize">
+					<span className="shrink-0 inline-flex items-center px-2 py-0.5 text-xs font-medium border border-[var(--border)] capitalize">
 						{fitnessLevel}
 					</span>
 				</div>
@@ -210,22 +215,13 @@ function HomePage() {
 				</div>
 			)}
 
-			<div className="flex items-center gap-3">
-				<Link
-					to="/schedule"
-					className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors rounded"
-				>
-					<Calendar className="h-4 w-4" />
-					View Full Schedule
-				</Link>
-				<Link
-					to="/plans"
-					className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
-				>
-					<Target className="h-4 w-4" />
-					Browse Plans
-				</Link>
-			</div>
+			<Link
+				to="/schedule"
+				className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors rounded"
+			>
+				<Calendar className="h-4 w-4" />
+				View Full Schedule
+			</Link>
 		</div>
 	);
 }
