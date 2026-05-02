@@ -5,7 +5,7 @@ import {
 	completeWorkout,
 } from "#/lib/plans.ts";
 import { getAuthSession } from "#/lib/auth-server.ts";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 
 export const Route = createFileRoute("/schedule")({
@@ -41,6 +41,24 @@ function formatPace(
 	return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function rowTitle(w: {
+	workoutType: string;
+	distanceKm: number | null;
+	durationMinutes: number | null;
+	title: string;
+}): string {
+	if (w.workoutType === "rest") return "Rest Day";
+	const parts: string[] = [];
+	if (w.distanceKm) parts.push(`${w.distanceKm}K`);
+	if (w.durationMinutes) parts.push(`${w.durationMinutes}m`);
+	const pace =
+		w.distanceKm && w.durationMinutes
+			? formatPace(w.distanceKm, w.durationMinutes)
+			: "";
+	if (pace) parts.push(pace);
+	return parts.join(" / ") || w.title;
+}
+
 type WorkoutItem = {
 	id: number;
 	weekNumber: number;
@@ -53,15 +71,6 @@ type WorkoutItem = {
 	completed: boolean;
 	completion: { effortFeedback: string | null } | null;
 };
-
-function workoutLabel(w: WorkoutItem): string {
-	if (w.instructions) {
-		// Truncate instructions to first sentence or 70 chars
-		const text = w.instructions.split(".")[0] + ".";
-		return text.length > 75 ? text.slice(0, 72) + "..." : text;
-	}
-	return w.title;
-}
 
 function SchedulePage() {
 	const { activePlan, schedule } = Route.useLoaderData();
@@ -79,9 +88,7 @@ function SchedulePage() {
 		}
 	}, []);
 
-	useEffect(() => {
-		return () => clearTimer();
-	}, [clearTimer]);
+	useEffect(() => () => clearTimer(), [clearTimer]);
 
 	if (!activePlan || !schedule || !localWorkouts) {
 		return (
@@ -126,7 +133,6 @@ function SchedulePage() {
 			return;
 		}
 		setActiveWorkoutId(workout.id);
-		// Auto-mark as done without effort after 4 seconds of inactivity
 		autoDismissTimer.current = setTimeout(() => {
 			handleSetEffort(workout, null);
 		}, 4000);
@@ -238,10 +244,7 @@ function SchedulePage() {
 								{weekWorkouts.map((workout, idx) => {
 									const isActive = activeWorkoutId === workout.id;
 									const isLoading = loadingId === workout.id;
-									const pace = formatPace(
-										workout.distanceKm,
-										workout.durationMinutes,
-									);
+									const title = rowTitle(workout);
 
 									return (
 										<div
@@ -255,7 +258,7 @@ function SchedulePage() {
 											<button
 												onClick={() => handleRowClick(workout)}
 												disabled={isLoading}
-												className={`w-full text-left transition-colors ${
+												className={`w-full text-left transition-colors px-4 py-3 flex items-center gap-3 ${
 													isActive
 														? "bg-[var(--secondary)]"
 														: workout.completed
@@ -263,108 +266,66 @@ function SchedulePage() {
 															: "hover:bg-[var(--muted)]"
 												}`}
 											>
-												<div className="grid grid-cols-[2.5rem_1fr_3.5rem_3rem_3.5rem] sm:grid-cols-[2.5rem_1fr_4rem_3.5rem_4rem_5rem] items-center gap-2 px-4 py-3">
-													{/* Day circle */}
-													<div
-														className={`flex items-center justify-center h-7 w-7 rounded-full border text-xs font-medium ${
-															workout.completed
-																? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400"
-																: "bg-[var(--background)] border-[var(--border)] text-[var(--muted-foreground)]"
-														}`}
-													>
-														{workout.completed ? (
-															<Check className="h-3.5 w-3.5" />
-														) : (
-															workout.dayNumber
-														)}
-													</div>
+												{/* Day circle */}
+												<div
+													className={`shrink-0 flex items-center justify-center h-7 w-7 rounded-full border text-xs font-medium ${
+														workout.completed
+															? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400"
+															: "bg-[var(--background)] border-[var(--border)] text-[var(--muted-foreground)]"
+													}`}
+												>
+													{workout.completed ? (
+														<Check className="h-3.5 w-3.5" />
+													) : (
+														workout.dayNumber
+													)}
+												</div>
 
-													{/* Label */}
-													<div className="min-w-0">
-														<p className="text-sm font-medium truncate">
-															{workoutLabel(workout)}
-														</p>
+												{/* Title */}
+												<div className="flex-1 min-w-0">
+													<p className="text-sm font-medium truncate">
+														{title}
 														{workout.completed &&
 															workout.completion?.effortFeedback && (
-																<p className="text-xs text-[var(--muted-foreground)] capitalize">
-																	{workout.completion.effortFeedback}
-																</p>
+																<span className="text-[var(--muted-foreground)] font-normal">
+																	{" "}
+																	· {workout.completion.effortFeedback}
+																</span>
 															)}
-													</div>
-
-													{/* Distance */}
-													<div className="text-right text-sm tabular-nums">
-														{workout.distanceKm ? `${workout.distanceKm}K` : ""}
-													</div>
-
-													{/* Duration */}
-													<div className="text-right text-sm tabular-nums text-[var(--muted-foreground)]">
-														{workout.durationMinutes
-															? `${workout.durationMinutes}m`
-															: ""}
-													</div>
-
-													{/* Pace - desktop only */}
-													<div className="hidden sm:block text-right text-sm tabular-nums text-[var(--muted-foreground)]">
-														{pace ? `${pace}/km` : ""}
-													</div>
-
-													{/* Type badge */}
-													<div className="hidden sm:flex justify-end">
-														<span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium border border-[var(--border)] text-[var(--muted-foreground)] capitalize">
-															{workout.workoutType.replace("_", " ")}
-														</span>
-													</div>
+													</p>
 												</div>
+
+												{/* Right side: effort selector */}
+												{isActive && !workout.completed && (
+													<div className="shrink-0 flex items-center gap-1">
+														{(["easy", "moderate", "hard"] as const).map(
+															(level) => (
+																<button
+																	key={level}
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		handleSetEffort(workout, level);
+																	}}
+																	disabled={isLoading}
+																	className="px-1.5 py-0.5 text-[10px] font-medium border border-[var(--border)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] hover:border-[var(--primary)] transition-colors disabled:opacity-50 rounded"
+																>
+																	{level.charAt(0).toUpperCase()}
+																</button>
+															),
+														)}
+														<button
+															onClick={(e) => {
+																e.stopPropagation();
+																handleSetEffort(workout, null);
+															}}
+															disabled={isLoading}
+															className="px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-foreground)] border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors disabled:opacity-50 rounded"
+														>
+															{isLoading ? "..." : "Skip"}
+														</button>
+													</div>
+												)}
 											</button>
-
-											{/* Mobile pace + type */}
-											{!workout.completed && (
-												<div className="px-4 pb-2 flex items-center gap-3 sm:hidden">
-													{pace && (
-														<span className="text-xs tabular-nums text-[var(--muted-foreground)]">
-															{pace}/km
-														</span>
-													)}
-													<span className="text-xs capitalize text-[var(--muted-foreground)]">
-														{workout.workoutType.replace("_", " ")}
-													</span>
-												</div>
-											)}
-
-											{/* Effort selector */}
-											{isActive && !workout.completed && (
-												<div className="px-4 pb-3 flex items-center gap-2">
-													<span className="text-xs text-[var(--muted-foreground)]">
-														How was it?
-													</span>
-													{(["easy", "moderate", "hard"] as const).map(
-														(level) => (
-															<button
-																key={level}
-																onClick={(e) => {
-																	e.stopPropagation();
-																	handleSetEffort(workout, level);
-																}}
-																disabled={isLoading}
-																className="px-2.5 py-1 text-xs font-medium border border-[var(--border)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] hover:border-[var(--primary)] transition-colors disabled:opacity-50 rounded"
-															>
-																{level.charAt(0).toUpperCase() + level.slice(1)}
-															</button>
-														),
-													)}
-													<button
-														onClick={(e) => {
-															e.stopPropagation();
-															handleSetEffort(workout, null);
-														}}
-														disabled={isLoading}
-														className="px-2.5 py-1 text-xs font-medium text-[var(--muted-foreground)] border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors disabled:opacity-50 rounded"
-													>
-														{isLoading ? "..." : "Skip"}
-													</button>
-												</div>
-											)}
 										</div>
 									);
 								})}
