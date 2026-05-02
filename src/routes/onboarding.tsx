@@ -1,13 +1,13 @@
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { authClient } from "#/lib/auth-client";
+import { getAuthSession } from "#/lib/auth-server.ts";
 import { saveUserProfile, getUserProfile } from "#/lib/plans.ts";
 
 export const Route = createFileRoute("/onboarding")({
 	component: OnboardingPage,
 	loader: async () => {
-		const session = await authClient.getSession();
-		if (!session?.data?.user) {
+		const session = await getAuthSession();
+		if (!session?.user) {
 			throw redirect({ to: "/auth" });
 		}
 		const profile = await getUserProfile();
@@ -52,7 +52,7 @@ function OnboardingPage() {
 	};
 
 	return (
-		<main className="max-w-md mx-auto px-4 py-12">
+		<div className="max-w-md mx-auto px-4 py-12">
 			{step === 1 && (
 				<div>
 					<h1 className="text-2xl font-bold tracking-tight mb-2">
@@ -148,6 +148,6 @@ function OnboardingPage() {
 					</Link>
 				</div>
 			)}
-		</main>
+		</div>
 	);
 }

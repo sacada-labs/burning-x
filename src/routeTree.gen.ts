@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -26,6 +27,11 @@ const ScheduleRoute = ScheduleRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/history': typeof HistoryRoute
   '/onboarding': typeof OnboardingRoute
   '/schedule': typeof ScheduleRoute
   '/plans/$planId': typeof PlansPlanIdRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/history': typeof HistoryRoute
   '/onboarding': typeof OnboardingRoute
   '/schedule': typeof ScheduleRoute
   '/plans/$planId': typeof PlansPlanIdRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/history': typeof HistoryRoute
   '/onboarding': typeof OnboardingRoute
   '/schedule': typeof ScheduleRoute
   '/plans/$planId': typeof PlansPlanIdRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/history'
     | '/onboarding'
     | '/schedule'
     | '/plans/$planId'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/history'
     | '/onboarding'
     | '/schedule'
     | '/plans/$planId'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/history'
     | '/onboarding'
     | '/schedule'
     | '/plans/$planId'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
+  HistoryRoute: typeof HistoryRoute
   OnboardingRoute: typeof OnboardingRoute
   ScheduleRoute: typeof ScheduleRoute
   PlansPlanIdRoute: typeof PlansPlanIdRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
+  HistoryRoute: HistoryRoute,
   OnboardingRoute: OnboardingRoute,
   ScheduleRoute: ScheduleRoute,
   PlansPlanIdRoute: PlansPlanIdRoute,

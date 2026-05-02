@@ -3,10 +3,12 @@ import {
 	getTrainingPlan,
 	enrollInPlan,
 	getUserActivePlan,
+	getActivePlanCount,
+	unenrollFromPlan,
 } from "#/lib/plans.ts";
 import { getAuthSession } from "#/lib/auth-server.ts";
 import { useState } from "react";
-import { Clock, Calendar, Target, ChevronLeft, Check } from "lucide-react";
+import { Clock, Calendar, Target, ChevronLeft, Check, X } from "lucide-react";
 
 export const Route = createFileRoute("/plans/$planId")({
 	component: PlanDetailPage,
@@ -69,6 +71,8 @@ function PlanDetailPage() {
 		fitnessLevel: string;
 		startWeek: number;
 	} | null>(null);
+	const [enrollError, setEnrollError] = useState<string | null>(null);
+	const [unenrolling, setUnenrolling] = useState(false);
 
 	const isEnrolledInThisPlan = activePlan?.planId === plan.id;
 
@@ -79,13 +83,25 @@ function PlanDetailPage() {
 		canRun10kNonstop: false,
 		recentWeeklyMileage: "",
 	});
+	const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState(3);
 
 	const handleEnroll = async () => {
+		setEnrollError(null);
 		setEnrolling(true);
 		try {
+			const activeCount = await getActivePlanCount();
+			if (activeCount >= 2) {
+				setEnrollError(
+					"You can only have 2 active plans at a time. Please unenroll from one first.",
+				);
+				setEnrolling(false);
+				return;
+			}
+
 			const result = await enrollInPlan({
 				data: {
 					planId: plan.id,
+					trainingDaysPerWeek,
 					assessment: {
 						canRun2kNonstop: assessment.canRun2kNonstop,
 						canRun5kNonstop: assessment.canRun5kNonstop,
@@ -104,9 +120,21 @@ function PlanDetailPage() {
 			setShowAssessment(false);
 		} catch (err) {
 			console.error("Enrollment failed:", err);
-			alert(err instanceof Error ? err.message : "Enrollment failed");
+			setEnrollError(err instanceof Error ? err.message : "Enrollment failed");
 		} finally {
 			setEnrolling(false);
+		}
+	};
+
+	const handleUnenroll = async () => {
+		if (!activePlan) return;
+		setUnenrolling(true);
+		try {
+			await unenrollFromPlan({ data: activePlan.id });
+			window.location.reload();
+		} catch (err) {
+			alert(err instanceof Error ? err.message : "Failed to unenroll");
+			setUnenrolling(false);
 		}
 	};
 
@@ -156,7 +184,7 @@ function PlanDetailPage() {
 
 				{isEnrolledInThisPlan || enrolled ? (
 					<div className="space-y-3">
-						<div className="flex items-center gap-3">
+						<div className="flex items-center gap-3 flex-wrap">
 							<div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm font-medium">
 								<Check className="h-4 w-4" />
 								You're enrolled in this plan
@@ -167,6 +195,15 @@ function PlanDetailPage() {
 							>
 								View Schedule
 							</Link>
+							{isEnrolledInThisPlan && (
+								<button
+									onClick={handleUnenroll}
+									disabled={unenrolling}
+									className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 rounded"
+								>
+									{unenrolling ? "Unenrolling..." : "Unenroll"}
+								</button>
+							)}
 						</div>
 						{enrollmentResult && enrollmentResult.startWeek > 1 && (
 							<div className="px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] text-sm rounded">
@@ -231,82 +268,94 @@ function PlanDetailPage() {
 
 			{/* Assessment Modal */}
 			{showAssessment && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center px-4"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="assessment-title"
+				>
 					<div
 						className="absolute inset-0 bg-black/50"
 						onClick={() => setShowAssessment(false)}
 					/>
 					<div className="relative bg-[var(--background)] border border-[var(--border)] w-full max-w-md p-6 rounded">
-						<h2 className="text-xl font-bold mb-2">Fitness Assessment</h2>
+						<div className="flex items-start justify-between mb-4">
+							<h2 id="assessment-title" className="text-xl font-bold">
+								Fitness Assessment
+							</h2>
+							<button
+								onClick={() => setShowAssessment(false)}
+								className="p-1 hover:bg-[var(--muted)] transition-colors rounded"
+								aria-label="Close"
+							>
+								<X className="h-4 w-4" />
+							</button>
+						</div>
 						<p className="text-sm text-[var(--muted-foreground)] mb-6">
 							Help us personalize your plan by answering a few quick questions
 							about your current fitness.
 						</p>
 
-						<div className="space-y-4 mb-6">
-							<label className="flex items-start gap-3 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={assessment.canRun2kNonstop}
-									onChange={(e) =>
-										setAssessment({
-											...assessment,
-											canRun2kNonstop: e.target.checked,
-										})
-									}
-									className="mt-0.5 h-4 w-4"
-								/>
-								<span className="text-sm">I can run 2 km without stopping</span>
-							</label>
+						<div className="mb-6">
+							<p className="text-sm font-medium mb-3">
+								How many days per week can you train?
+							</p>
+							<div className="flex gap-2">
+								{[2, 3, 4].map((days) => (
+									<button
+										key={days}
+										onClick={() => setTrainingDaysPerWeek(days)}
+										className={`flex-1 h-9 text-sm font-medium border transition-colors rounded ${
+											trainingDaysPerWeek === days
+												? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
+												: "border-[var(--border)] hover:bg-[var(--secondary)]"
+										}`}
+									>
+										{days} days
+									</button>
+								))}
+							</div>
+						</div>
 
-							<label className="flex items-start gap-3 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={assessment.canRun5kNonstop}
-									onChange={(e) =>
-										setAssessment({
-											...assessment,
-											canRun5kNonstop: e.target.checked,
-										})
-									}
-									className="mt-0.5 h-4 w-4"
-								/>
-								<span className="text-sm">I can run 5 km without stopping</span>
-							</label>
-
-							<label className="flex items-start gap-3 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={assessment.canRun5kUnder30}
-									onChange={(e) =>
-										setAssessment({
-											...assessment,
-											canRun5kUnder30: e.target.checked,
-										})
-									}
-									className="mt-0.5 h-4 w-4"
-								/>
-								<span className="text-sm">
-									I can run 5 km in under 30 minutes
-								</span>
-							</label>
-
-							<label className="flex items-start gap-3 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={assessment.canRun10kNonstop}
-									onChange={(e) =>
-										setAssessment({
-											...assessment,
-											canRun10kNonstop: e.target.checked,
-										})
-									}
-									className="mt-0.5 h-4 w-4"
-								/>
-								<span className="text-sm">
-									I can run 10 km without stopping
-								</span>
-							</label>
+						<div className="space-y-3 mb-6">
+							{[
+								{
+									key: "canRun2kNonstop",
+									label: "I can run 2 km without stopping",
+								},
+								{
+									key: "canRun5kNonstop",
+									label: "I can run 5 km without stopping",
+								},
+								{
+									key: "canRun5kUnder30",
+									label: "I can run 5 km in under 30 minutes",
+								},
+								{
+									key: "canRun10kNonstop",
+									label: "I can run 10 km without stopping",
+								},
+							].map((item) => (
+								<label
+									key={item.key}
+									className="flex items-center gap-3 cursor-pointer"
+								>
+									<input
+										type="checkbox"
+										checked={
+											assessment[item.key as keyof typeof assessment] as boolean
+										}
+										onChange={(e) =>
+											setAssessment({
+												...assessment,
+												[item.key]: e.target.checked,
+											})
+										}
+										className="h-[18px] w-[18px] shrink-0 accent-[var(--accent)]"
+									/>
+									<span className="text-sm leading-tight">{item.label}</span>
+								</label>
+							))}
 
 							<div>
 								<label className="text-sm font-medium mb-1.5 block">
@@ -326,6 +375,12 @@ function PlanDetailPage() {
 								/>
 							</div>
 						</div>
+
+						{enrollError && (
+							<div className="mb-4 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400 rounded">
+								{enrollError}
+							</div>
+						)}
 
 						<div className="flex gap-3">
 							<button

@@ -1,11 +1,19 @@
-import { Link } from '@tanstack/react-router'
-import { authClient } from '#/lib/auth-client'
-import BetterAuthHeader from '../integrations/better-auth/header-user.tsx'
-import ThemeToggle from './ThemeToggle'
+import { Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { authClient } from "#/lib/auth-client";
+import BetterAuthHeader from "../integrations/better-auth/header-user.tsx";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Header() {
-	const { data: session } = authClient.useSession()
-	const isLoggedIn = !!session?.user
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+	useEffect(() => {
+		const check = async () => {
+			const session = await authClient.getSession();
+			setIsLoggedIn(!!session.data?.user);
+		};
+		void check();
+	}, []);
 
 	return (
 		<header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)] px-4">
@@ -24,21 +32,21 @@ export default function Header() {
 						<Link
 							to="/"
 							className="nav-link"
-							activeProps={{ className: 'nav-link is-active' }}
+							activeProps={{ className: "nav-link is-active" }}
 						>
 							Home
 						</Link>
 						<Link
 							to="/plans"
 							className="nav-link"
-							activeProps={{ className: 'nav-link is-active' }}
+							activeProps={{ className: "nav-link is-active" }}
 						>
 							Plans
 						</Link>
 						<Link
 							to="/schedule"
 							className="nav-link"
-							activeProps={{ className: 'nav-link is-active' }}
+							activeProps={{ className: "nav-link is-active" }}
 						>
 							Schedule
 						</Link>
@@ -55,5 +63,5 @@ export default function Header() {
 				</div>
 			</nav>
 		</header>
-	)
+	);
 }

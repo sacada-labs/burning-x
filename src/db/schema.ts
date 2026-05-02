@@ -68,6 +68,7 @@ export const userPlans = sqliteTable("user_plans", {
 	startDate: integer("start_date", { mode: "timestamp" }).notNull(),
 	status: text().notNull().default("active"),
 	fitnessLevel: text("fitness_level").default("beginner"), // beginner, intermediate, advanced (derived from assessment)
+	trainingDaysPerWeek: integer("training_days_per_week").default(3),
 	createdAt: integer("created_at", { mode: "timestamp" }).default(
 		sql`(unixepoch())`,
 	),
@@ -95,12 +96,15 @@ export const planAssessments = sqliteTable("plan_assessments", {
 	),
 });
 
-export const planAssessmentsRelations = relations(planAssessments, ({ one }) => ({
-	userPlan: one(userPlans, {
-		fields: [planAssessments.userPlanId],
-		references: [userPlans.id],
+export const planAssessmentsRelations = relations(
+	planAssessments,
+	({ one }) => ({
+		userPlan: one(userPlans, {
+			fields: [planAssessments.userPlanId],
+			references: [userPlans.id],
+		}),
 	}),
-}));
+);
 
 export const workoutCompletions = sqliteTable("workout_completions", {
 	id: integer({ mode: "number" }).primaryKey({ autoIncrement: true }),

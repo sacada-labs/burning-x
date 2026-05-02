@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "#/db/index.ts";
 import {
 	trainingPlans,
@@ -129,6 +129,7 @@ export const enrollInPlan = createServerFn({
 	.inputValidator(
 		(data: {
 			planId: number;
+			trainingDaysPerWeek?: number;
 			assessment: {
 				canRun2kNonstop?: boolean;
 				canRun5kNonstop?: boolean;
@@ -162,17 +163,6 @@ export const enrollInPlan = createServerFn({
 			fitnessLevel = "intermediate";
 		}
 
-		// Deactivate any other active plans
-		await db
-			.update(userPlans)
-			.set({ status: "abandoned" })
-			.where(
-				and(
-					eq(userPlans.userId, session.user.id),
-					eq(userPlans.status, "active"),
-				),
-			);
-
 		// Create new user plan
 		const [userPlan] = await db
 			.insert(userPlans)
@@ -182,6 +172,7 @@ export const enrollInPlan = createServerFn({
 				startDate: new Date(),
 				status: "active",
 				fitnessLevel,
+				trainingDaysPerWeek: data.trainingDaysPerWeek ?? 3,
 			})
 			.returning();
 
@@ -291,6 +282,21 @@ export const completeWorkout = createServerFn({
 
 		if (!userPlan) throw new Error("Plan not found");
 
+		const existing = await db.query.workoutCompletions.findFirst({
+			where: and(
+				eq(workoutCompletions.userPlanId, data.userPlanId),
+				eq(workoutCompletions.workoutId, data.workoutId),
+			),
+		});
+
+		if (existing) {
+			await db
+				.update(workoutCompletions)
+				.set({ effortFeedback: data.effortFeedback ?? null })
+				.where(eq(workoutCompletions.id, existing.id));
+			return existing;
+		}
+
 		const [completion] = await db
 			.insert(workoutCompletions)
 			.values({
@@ -302,6 +308,97 @@ export const completeWorkout = createServerFn({
 
 		return completion;
 	});
+
+export const uncompleteWorkout = createServerFn({
+	method: "POST",
+})
+	.inputValidator((data: { userPlanId: number; workoutId: number }) => data)
+	.handler(async ({ data }) => {
+		const session = await getSession();
+		if (!session?.user) throw new Error("Not authenticated");
+
+		await db
+			.delete(workoutCompletions)
+			.where(
+				and(
+					eq(workoutCompletions.userPlanId, data.userPlanId),
+					eq(workoutCompletions.workoutId, data.workoutId),
+				),
+			);
+	});
+
+export const updateWorkoutEffort = createServerFn({
+	method: "POST",
+})
+	.inputValidator(
+		(data: {
+			userPlanId: number;
+			workoutId: number;
+			effortFeedback?: "easy" | "moderate" | "hard";
+		}) => data,
+	)
+	.handler(async ({ data }) => {
+		const session = await getSession();
+		if (!session?.user) throw new Error("Not authenticated");
+
+		await db
+			.update(workoutCompletions)
+			.set({ effortFeedback: data.effortFeedback ?? null })
+			.where(
+				and(
+					eq(workoutCompletions.userPlanId, data.userPlanId),
+					eq(workoutCompletions.workoutId, data.workoutId),
+				),
+			);
+	});
+
+export const unenrollFromPlan = createServerFn({
+	method: "POST",
+})
+	.inputValidator((userPlanId: number) => userPlanId)
+	.handler(async ({ data: userPlanId }) => {
+		const session = await getSession();
+		if (!session?.user) throw new Error("Not authenticated");
+
+		await db
+			.update(userPlans)
+			.set({ status: "abandoned" })
+			.where(
+				and(
+					eq(userPlans.id, userPlanId),
+					eq(userPlans.userId, session.user.id),
+				),
+			);
+	});
+
+export const getUserPlanHistory = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	const session = await getSession();
+	if (!session?.user) return [];
+	return db.query.userPlans.findMany({
+		where: eq(userPlans.userId, session.user.id),
+		with: { plan: true },
+		orderBy: (plans, { desc }) => [desc(plans.createdAt)],
+	});
+});
+
+export const getActivePlanCount = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	const session = await getSession();
+	if (!session?.user) return 0;
+	const result = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(userPlans)
+		.where(
+			and(
+				eq(userPlans.userId, session.user.id),
+				eq(userPlans.status, "active"),
+			),
+		);
+	return result[0]?.count ?? 0;
+});
 
 export const getWorkoutCompletion = createServerFn({
 	method: "GET",

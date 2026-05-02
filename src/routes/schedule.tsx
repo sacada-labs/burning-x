@@ -3,9 +3,11 @@ import {
 	getUserActivePlan,
 	getUserPlanSchedule,
 	completeWorkout,
+	uncompleteWorkout,
+	updateWorkoutEffort,
 } from "#/lib/plans.ts";
 import { getAuthSession } from "#/lib/auth-server.ts";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Check } from "lucide-react";
 
 export const Route = createFileRoute("/schedule")({
@@ -79,16 +81,6 @@ function SchedulePage() {
 	);
 	const [activeWorkoutId, setActiveWorkoutId] = useState<number | null>(null);
 	const [loadingId, setLoadingId] = useState<number | null>(null);
-	const autoDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-	const clearTimer = useCallback(() => {
-		if (autoDismissTimer.current) {
-			clearTimeout(autoDismissTimer.current);
-			autoDismissTimer.current = null;
-		}
-	}, []);
-
-	useEffect(() => () => clearTimer(), [clearTimer]);
 
 	if (!activePlan || !schedule || !localWorkouts) {
 		return (
@@ -123,27 +115,19 @@ function SchedulePage() {
 		totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
 	const handleRowClick = (workout: WorkoutItem) => {
-		clearTimer();
-		if (workout.completed) {
-			setActiveWorkoutId(null);
-			return;
-		}
+		if (workout.workoutType === "rest") return;
 		if (activeWorkoutId === workout.id) {
 			setActiveWorkoutId(null);
 			return;
 		}
 		setActiveWorkoutId(workout.id);
-		autoDismissTimer.current = setTimeout(() => {
-			handleSetEffort(workout, null);
-		}, 4000);
 	};
 
-	const handleSetEffort = async (
+	const handleComplete = async (
 		workout: WorkoutItem,
 		effort: "easy" | "moderate" | "hard" | null,
 	) => {
-		clearTimer();
-		if (workout.completed) return;
+		if (workout.workoutType === "rest") return;
 		setLoadingId(workout.id);
 		try {
 			await completeWorkout({
@@ -171,6 +155,69 @@ function SchedulePage() {
 			setActiveWorkoutId(null);
 		} catch (err) {
 			alert(err instanceof Error ? err.message : "Failed to complete");
+		} finally {
+			setLoadingId(null);
+		}
+	};
+
+	const handleUncomplete = async (workout: WorkoutItem) => {
+		if (workout.workoutType === "rest") return;
+		setLoadingId(workout.id);
+		try {
+			await uncompleteWorkout({
+				data: {
+					userPlanId: userPlan.id,
+					workoutId: workout.id,
+				},
+			});
+			setLocalWorkouts((prev) =>
+				prev
+					? prev.map((w) =>
+							w.id === workout.id
+								? { ...w, completed: false, completion: null }
+								: w,
+						)
+					: prev,
+			);
+			setActiveWorkoutId(null);
+		} catch (err) {
+			alert(err instanceof Error ? err.message : "Failed to uncomplete");
+		} finally {
+			setLoadingId(null);
+		}
+	};
+
+	const handleUpdateEffort = async (
+		workout: WorkoutItem,
+		effort: "easy" | "moderate" | "hard" | null,
+	) => {
+		if (workout.workoutType === "rest") return;
+		setLoadingId(workout.id);
+		try {
+			await updateWorkoutEffort({
+				data: {
+					userPlanId: userPlan.id,
+					workoutId: workout.id,
+					effortFeedback: effort ?? undefined,
+				},
+			});
+			setLocalWorkouts((prev) =>
+				prev
+					? prev.map((w) =>
+							w.id === workout.id
+								? {
+										...w,
+										completion: {
+											effortFeedback: effort,
+										},
+									}
+								: w,
+						)
+					: prev,
+			);
+			setActiveWorkoutId(null);
+		} catch (err) {
+			alert(err instanceof Error ? err.message : "Failed to update effort");
 		} finally {
 			setLoadingId(null);
 		}
@@ -245,6 +292,7 @@ function SchedulePage() {
 									const isActive = activeWorkoutId === workout.id;
 									const isLoading = loadingId === workout.id;
 									const title = rowTitle(workout);
+									const isRest = workout.workoutType === "rest";
 
 									return (
 										<div
@@ -255,15 +303,24 @@ function SchedulePage() {
 													: ""
 											}
 										>
-											<button
+											<div
+												role={isRest ? undefined : "button"}
+												tabIndex={isRest ? undefined : 0}
 												onClick={() => handleRowClick(workout)}
-												disabled={isLoading}
+												onKeyDown={(e) => {
+													if (e.key === "Enter" || e.key === " ") {
+														e.preventDefault();
+														handleRowClick(workout);
+													}
+												}}
 												className={`w-full text-left transition-colors px-4 py-3 flex items-center gap-3 ${
 													isActive
 														? "bg-[var(--secondary)]"
 														: workout.completed
 															? "opacity-60"
-															: "hover:bg-[var(--muted)]"
+															: isRest
+																? ""
+																: "hover:bg-[var(--muted)] cursor-pointer"
 												}`}
 											>
 												{/* Day circle */}
@@ -295,8 +352,8 @@ function SchedulePage() {
 													</p>
 												</div>
 
-												{/* Right side: effort selector */}
-												{isActive && !workout.completed && (
+												{/* Right side: effort selector or uncomplete */}
+												{isActive && !workout.completed && !isRest && (
 													<div className="shrink-0 flex items-center gap-1">
 														{(["easy", "moderate", "hard"] as const).map(
 															(level) => (
@@ -304,28 +361,60 @@ function SchedulePage() {
 																	key={level}
 																	onClick={(e) => {
 																		e.stopPropagation();
-																		handleSetEffort(workout, level);
+																		handleComplete(workout, level);
 																	}}
 																	disabled={isLoading}
-																	className="px-1.5 py-0.5 text-[10px] font-medium border border-[var(--border)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] hover:border-[var(--primary)] transition-colors disabled:opacity-50 rounded"
+																	className="px-2 py-1 text-[10px] font-medium border border-[var(--border)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] hover:border-[var(--primary)] transition-colors disabled:opacity-50 rounded"
 																>
-																	{level.charAt(0).toUpperCase()}
+																	{level.charAt(0).toUpperCase() +
+																		level.slice(1)}
 																</button>
 															),
 														)}
 														<button
 															onClick={(e) => {
 																e.stopPropagation();
-																handleSetEffort(workout, null);
+																handleComplete(workout, null);
 															}}
 															disabled={isLoading}
-															className="px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-foreground)] border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors disabled:opacity-50 rounded"
+															className="px-2 py-1 text-[10px] font-medium text-[var(--muted-foreground)] border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors disabled:opacity-50 rounded"
 														>
-															{isLoading ? "..." : "Skip"}
+															{isLoading ? "..." : "Just Done"}
 														</button>
 													</div>
 												)}
-											</button>
+
+												{isActive && workout.completed && !isRest && (
+													<div className="shrink-0 flex items-center gap-1">
+														{(["easy", "moderate", "hard"] as const).map(
+															(level) => (
+																<button
+																	key={level}
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		handleUpdateEffort(workout, level);
+																	}}
+																	disabled={isLoading}
+																	className="px-2 py-1 text-[10px] font-medium border border-[var(--border)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] hover:border-[var(--primary)] transition-colors disabled:opacity-50 rounded"
+																>
+																	{level.charAt(0).toUpperCase() +
+																		level.slice(1)}
+																</button>
+															),
+														)}
+														<button
+															onClick={(e) => {
+																e.stopPropagation();
+																handleUncomplete(workout);
+															}}
+															disabled={isLoading}
+															className="px-2 py-1 text-[10px] font-medium text-red-600 dark:text-red-400 border border-[var(--border)] hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 rounded"
+														>
+															{isLoading ? "..." : "Uncomplete"}
+														</button>
+													</div>
+												)}
+											</div>
 										</div>
 									);
 								})}
