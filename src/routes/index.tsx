@@ -1,15 +1,21 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { getUserActivePlan, getUserPlanSchedule } from '#/lib/plans.ts'
-import { Target, Calendar, TrendingUp, ArrowRight } from 'lucide-react'
+import { getAuthSession } from '#/lib/auth-server.ts'
+import { Calendar, TrendingUp, Target, ArrowRight } from 'lucide-react'
 
 export const Route = createFileRoute('/')({
 	component: HomePage,
 	loader: async () => {
+		const session = await getAuthSession()
+		if (!session?.user) {
+			return { activePlan: null, schedule: null, isLoggedIn: false }
+		}
+
 		const activePlan = await getUserActivePlan()
-		if (!activePlan) return { activePlan: null, schedule: null }
+		if (!activePlan) return { activePlan: null, schedule: null, isLoggedIn: true }
 
 		const schedule = await getUserPlanSchedule({ data: activePlan.id })
-		return { activePlan, schedule }
+		return { activePlan, schedule, isLoggedIn: true }
 	},
 })
 
@@ -21,18 +27,45 @@ const distanceLabels: Record<string, string> = {
 }
 
 function HomePage() {
-	const { activePlan, schedule } = Route.useLoaderData()
+	const { activePlan, schedule, isLoggedIn } = Route.useLoaderData()
 
+	// Landing page for non-logged-in users
+	if (!isLoggedIn) {
+		return (
+			<main className="flex flex-col items-center justify-center px-4 py-24 text-center">
+				<div className="mb-6">
+					<span className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--secondary)] px-4 py-2 text-sm font-semibold text-[var(--foreground)]">
+						<span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
+						Runna
+					</span>
+				</div>
+				<h1 className="text-4xl font-bold tracking-tight mb-4 sm:text-5xl">
+					Your personal running coach.
+				</h1>
+				<p className="text-lg text-[var(--muted-foreground)] mb-10 max-w-md">
+					Structured training plans for 5K, 10K, half marathon, and marathon.
+					Log workouts and track your progress.
+				</p>
+				<Link
+					to="/auth"
+					className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
+				>
+					Get Started
+				</Link>
+			</main>
+		)
+	}
+
+	// Dashboard for logged-in users without an active plan
 	if (!activePlan || !schedule) {
 		return (
 			<main className="max-w-4xl mx-auto px-4 py-16">
 				<div className="text-center">
-					<h1 className="text-4xl font-bold tracking-tight mb-4">
-						Your Running Journey Starts Here
+					<h1 className="text-3xl font-bold tracking-tight mb-4">
+						Welcome back
 					</h1>
 					<p className="text-lg text-[var(--muted-foreground)] mb-8 max-w-xl mx-auto">
-						Pick a training plan and start working toward your goal. From your
-						first 5K to your first marathon.
+						Pick a training plan and start working toward your goal.
 					</p>
 					<Link
 						to="/plans"
@@ -42,43 +75,16 @@ function HomePage() {
 						Browse Training Plans
 					</Link>
 				</div>
-
-				<div className="mt-16 grid gap-6 sm:grid-cols-3">
-					{[
-						{
-							title: 'Structured Plans',
-							desc: 'Follow proven training plans designed by running coaches for 5K, 10K, half marathon, and marathon distances.',
-						},
-						{
-							title: 'Track Progress',
-							desc: 'Log every workout, see your completion rate, and watch yourself get closer to race day.',
-						},
-						{
-							title: 'Stay Consistent',
-							desc: 'A clear weekly schedule keeps you accountable and builds habits that lead to results.',
-						},
-					].map((feature) => (
-						<div
-							key={feature.title}
-							className="p-6 border border-[var(--border)] rounded"
-						>
-							<h3 className="font-semibold mb-2">{feature.title}</h3>
-							<p className="text-sm text-[var(--muted-foreground)]">
-								{feature.desc}
-							</p>
-						</div>
-					))}
-				</div>
 			</main>
 		)
 	}
 
+	// Full dashboard
 	const { userPlan, workouts } = schedule
 	const completedCount = workouts.filter((w) => w.completed).length
 	const totalCount = workouts.length
 	const progressPercent = Math.round((completedCount / totalCount) * 100)
 
-	// Get this week's workouts
 	const today = new Date()
 	const daysSinceStart = Math.floor(
 		(today.getTime() - new Date(userPlan.startDate).getTime()) /
@@ -91,7 +97,6 @@ function HomePage() {
 	const thisWeekWorkouts = workouts.filter((w) => w.weekNumber === currentWeek)
 	const thisWeekCompleted = thisWeekWorkouts.filter((w) => w.completed).length
 
-	// Upcoming workout (first incomplete)
 	const upcomingWorkout = workouts.find((w) => !w.completed)
 
 	return (

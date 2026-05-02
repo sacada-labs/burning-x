@@ -1,8 +1,12 @@
 import { Link } from '@tanstack/react-router'
+import { authClient } from '#/lib/auth-client'
 import BetterAuthHeader from '../integrations/better-auth/header-user.tsx'
 import ThemeToggle from './ThemeToggle'
 
 export default function Header() {
+	const { data: session } = authClient.useSession()
+	const isLoggedIn = !!session?.user
+
 	return (
 		<header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)] px-4">
 			<nav className="page-wrap flex flex-wrap items-center gap-x-3 gap-y-2 py-3 sm:py-4">
@@ -16,32 +20,34 @@ export default function Header() {
 					</Link>
 				</h2>
 
-				<div className="order-3 flex w-full flex-wrap items-center gap-x-1 gap-y-1 pb-1 text-sm font-semibold sm:order-2 sm:ml-auto sm:w-auto sm:flex-nowrap sm:pb-0">
-					<Link
-						to="/"
-						className="nav-link"
-						activeProps={{ className: 'nav-link is-active' }}
-					>
-						Home
-					</Link>
-					<Link
-						to="/plans"
-						className="nav-link"
-						activeProps={{ className: 'nav-link is-active' }}
-					>
-						Plans
-					</Link>
-					<Link
-						to="/schedule"
-						className="nav-link"
-						activeProps={{ className: 'nav-link is-active' }}
-					>
-						Schedule
-					</Link>
-				</div>
+				{isLoggedIn && (
+					<div className="order-3 flex w-full flex-wrap items-center gap-x-1 gap-y-1 pb-1 text-sm font-semibold sm:order-2 sm:ml-auto sm:w-auto sm:flex-nowrap sm:pb-0">
+						<Link
+							to="/"
+							className="nav-link"
+							activeProps={{ className: 'nav-link is-active' }}
+						>
+							Home
+						</Link>
+						<Link
+							to="/plans"
+							className="nav-link"
+							activeProps={{ className: 'nav-link is-active' }}
+						>
+							Plans
+						</Link>
+						<Link
+							to="/schedule"
+							className="nav-link"
+							activeProps={{ className: 'nav-link is-active' }}
+						>
+							Schedule
+						</Link>
+					</div>
+				)}
 
 				<div className="ml-auto flex items-center gap-2 sm:ml-0">
-					<BetterAuthHeader />
+					{isLoggedIn && <BetterAuthHeader />}
 					<ThemeToggle />
 				</div>
 			</nav>

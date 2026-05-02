@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import {
 	getTrainingPlan,
 	getWorkoutCompletion,
 	completeWorkout,
 	getUserActivePlan,
 } from '#/lib/plans.ts'
+import { getAuthSession } from '#/lib/auth-server.ts'
 import { useState } from 'react'
 import {
 	ChevronLeft,
@@ -17,6 +18,10 @@ import {
 export const Route = createFileRoute('/workouts/$workoutId')({
 	component: WorkoutDetailPage,
 	loader: async ({ params, deps }) => {
+		const session = await getAuthSession()
+		if (!session?.user) {
+			throw redirect({ to: '/auth' })
+		}
 		const workoutId = Number.parseInt(params.workoutId, 10)
 		const search = deps.search as { userPlanId?: string }
 		const userPlanId = search?.userPlanId

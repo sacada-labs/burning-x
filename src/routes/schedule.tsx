@@ -1,10 +1,15 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { getUserActivePlan, getUserPlanSchedule } from '#/lib/plans.ts'
+import { getAuthSession } from '#/lib/auth-server.ts'
 import { Check } from 'lucide-react'
 
 export const Route = createFileRoute('/schedule')({
 	component: SchedulePage,
 	loader: async () => {
+		const session = await getAuthSession()
+		if (!session?.user) {
+			throw redirect({ to: '/auth' })
+		}
 		const activePlan = await getUserActivePlan()
 		if (!activePlan) return { activePlan: null, schedule: null }
 

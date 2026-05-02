@@ -1,10 +1,15 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { getTrainingPlans } from '#/lib/plans.ts'
+import { getAuthSession } from '#/lib/auth-server.ts'
 import { Clock, Target, Zap } from 'lucide-react'
 
 export const Route = createFileRoute('/plans/')({
 	component: PlansPage,
 	loader: async () => {
+		const session = await getAuthSession()
+		if (!session?.user) {
+			throw redirect({ to: '/auth' })
+		}
 		return getTrainingPlans()
 	},
 })
