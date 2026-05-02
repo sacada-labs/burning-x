@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { authClient } from "#/lib/auth-client";
 import BetterAuthHeader from "../integrations/better-auth/header-user.tsx";
-import ThemeToggle from "./ThemeToggle";
 
 export default function Header() {
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -67,10 +66,7 @@ export default function Header() {
 					</div>
 				)}
 
-				<div className="flex items-center gap-2">
-					{isLoggedIn && <BetterAuthHeader />}
-					<ThemeToggle />
-				</div>
+				{isLoggedIn && <BetterAuthHeader />}
 			</nav>
 		</header>
 	);
