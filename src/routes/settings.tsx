@@ -62,6 +62,7 @@ function SettingsPage() {
 	const [theme, setTheme] = useState<ThemeMode>(getStoredTheme());
 	const [editingProfile, setEditingProfile] = useState(false);
 	const [saving, setSaving] = useState(false);
+	const [imgError, setImgError] = useState(false);
 
 	const [form, setForm] = useState({
 		birthYear: profile?.birthYear ? String(profile.birthYear) : "",
@@ -114,22 +115,23 @@ function SettingsPage() {
 			{/* Profile Card */}
 			<div className="rounded-xl border border-[var(--border)] bg-[var(--secondary)] p-4 mb-6">
 				<div className="flex items-center gap-3">
-					{user?.image ? (
+					{user?.image?.trim() && !imgError ? (
 						<img
-							src={user.image}
+							src={user.image.trim()}
 							alt=""
-							className="h-12 w-12 rounded-full"
+							className="h-12 w-12 rounded-full object-cover"
+							onError={() => setImgError(true)}
 						/>
 					) : (
 						<div className="h-12 w-12 rounded-full bg-[var(--muted)] flex items-center justify-center">
 							<span className="text-base font-medium text-[var(--muted-foreground)]">
-								{user?.name?.charAt(0).toUpperCase() || "U"}
+								{user?.name?.trim().charAt(0).toUpperCase() || "U"}
 							</span>
 						</div>
 					)}
 					<div className="flex-1 min-w-0">
 						<p className="text-sm font-semibold text-[var(--foreground)] truncate">
-							{user?.name || "User"}
+							{user?.name?.trim() || "User"}
 						</p>
 						<p className="text-xs text-[var(--muted-foreground)] truncate">
 							{user?.email || ""}
@@ -172,9 +174,7 @@ function SettingsPage() {
 							</label>
 							<select
 								value={form.gender}
-								onChange={(e) =>
-									setForm({ ...form, gender: e.target.value })
-								}
+								onChange={(e) => setForm({ ...form, gender: e.target.value })}
 								className="flex h-9 w-full border border-[var(--border)] bg-[var(--background)] px-3 text-sm focus:outline-none focus:border-[var(--foreground)] rounded"
 							>
 								<option value="">Select</option>
