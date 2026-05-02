@@ -153,6 +153,44 @@ function HomePage() {
 				)}
 			</div>
 
+			{progressPercent === 100 ? (
+				<div className="border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-6 mb-8 rounded">
+					<div className="text-center">
+						<div className="text-4xl mb-2">🏁</div>
+						<h2 className="text-xl font-bold text-green-800 dark:text-green-400 mb-1">
+							Plan Complete
+						</h2>
+						<p className="text-sm text-green-700 dark:text-green-500 mb-4">
+							You finished {activePlan.plan.name}. Great work.
+						</p>
+						<Link
+							to="/plans"
+							className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
+						>
+							<Target className="h-4 w-4" />
+							Start a New Plan
+						</Link>
+					</div>
+				</div>
+			) : upcomingWorkout ? (
+				<div className="border border-[var(--border)] p-6 mb-8 rounded">
+					<div>
+						<p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider mb-1">
+							Next Workout
+						</p>
+						<h2 className="text-xl font-semibold">{upcomingWorkout.title}</h2>
+						<p className="text-sm text-[var(--muted-foreground)]">
+							Week {upcomingWorkout.weekNumber} · Day{" "}
+							{upcomingWorkout.dayNumber}
+							{upcomingWorkout.distanceKm &&
+								` · ${upcomingWorkout.distanceKm}K`}
+							{upcomingWorkout.durationMinutes &&
+								` · ${upcomingWorkout.durationMinutes} min`}
+						</p>
+					</div>
+				</div>
+			) : null}
+
 			<div className="grid gap-4 sm:grid-cols-3 mb-8">
 				<div className="p-4 border border-[var(--border)] rounded">
 					<div className="flex items-center gap-2 text-[var(--muted-foreground)] mb-2">
@@ -195,25 +233,6 @@ function HomePage() {
 					</div>
 				</div>
 			</div>
-
-			{upcomingWorkout && (
-				<div className="border border-[var(--border)] p-6 mb-8 rounded">
-					<div className="mb-4">
-						<p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider mb-1">
-							Next Workout
-						</p>
-						<h2 className="text-xl font-semibold">{upcomingWorkout.title}</h2>
-						<p className="text-sm text-[var(--muted-foreground)]">
-							Week {upcomingWorkout.weekNumber} · Day{" "}
-							{upcomingWorkout.dayNumber}
-							{upcomingWorkout.distanceKm &&
-								` · ${upcomingWorkout.distanceKm}K`}
-							{upcomingWorkout.durationMinutes &&
-								` · ${upcomingWorkout.durationMinutes} min`}
-						</p>
-					</div>
-				</div>
-			)}
 
 			<Link
 				to="/schedule"
