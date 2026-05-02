@@ -1,79 +1,79 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from '@tanstack/react-router'
 import {
 	getTrainingPlan,
 	enrollInPlan,
 	getUserActivePlan,
-} from "#/lib/plans.ts";
-import { useState } from "react";
-import { Clock, Calendar, Target, ChevronLeft, Check } from "lucide-react";
+} from '#/lib/plans.ts'
+import { useState } from 'react'
+import { Clock, Calendar, Target, ChevronLeft, Check } from 'lucide-react'
 
-export const Route = createFileRoute("/plans/$planId")({
+export const Route = createFileRoute('/plans/$planId')({
 	component: PlanDetailPage,
 	loader: async ({ params }) => {
-		const planId = Number.parseInt(params.planId, 10);
+		const planId = Number.parseInt(params.planId, 10)
 		const [planData, activePlan] = await Promise.all([
 			getTrainingPlan({ data: planId }),
 			getUserActivePlan(),
-		]);
-		return { ...planData, activePlan };
+		])
+		return { ...planData, activePlan }
 	},
-});
+})
 
 const distanceLabels: Record<string, string> = {
-	"5k": "5K",
-	"10k": "10K",
-	half_marathon: "Half Marathon",
-	marathon: "Marathon",
-};
+	'5k': '5K',
+	'10k': '10K',
+	'half_marathon': 'Half Marathon',
+	'marathon': 'Marathon',
+}
 
 const difficultyLabels: Record<string, string> = {
-	beginner: "Beginner",
-	intermediate: "Intermediate",
-	advanced: "Advanced",
-};
+	beginner: 'Beginner',
+	intermediate: 'Intermediate',
+	advanced: 'Advanced',
+}
 
 const workoutTypeLabels: Record<string, string> = {
-	easy: "Easy Run",
-	tempo: "Tempo Run",
-	interval: "Intervals",
-	long_run: "Long Run",
-	rest: "Rest Day",
-	cross_train: "Cross Training",
-	race: "Race Day",
-};
+	easy: 'Easy Run',
+	tempo: 'Tempo Run',
+	interval: 'Intervals',
+	long_run: 'Long Run',
+	rest: 'Rest Day',
+	cross_train: 'Cross Training',
+	race: 'Race Day',
+}
 
 function PlanDetailPage() {
-	const { plan, workouts, activePlan } = Route.useLoaderData();
-	const [enrolling, setEnrolling] = useState(false);
-	const [enrolled, setEnrolled] = useState(activePlan?.planId === plan.id);
+	const { plan, workouts, activePlan } = Route.useLoaderData()
+	const [enrolling, setEnrolling] = useState(false)
+	const [enrolled, setEnrolled] = useState(activePlan?.planId === plan.id)
 
-	const isEnrolledInThisPlan = activePlan?.planId === plan.id;
+	const isEnrolledInThisPlan = activePlan?.planId === plan.id
 
 	const handleEnroll = async () => {
-		setEnrolling(true);
+		setEnrolling(true)
 		try {
-			await enrollInPlan({ data: plan.id });
-			setEnrolled(true);
+			await enrollInPlan({ data: plan.id })
+			setEnrolled(true)
 		} catch (err) {
-			console.error("Enrollment failed:", err);
-			alert(err instanceof Error ? err.message : "Enrollment failed");
+			console.error('Enrollment failed:', err)
+			alert(err instanceof Error ? err.message : 'Enrollment failed')
 		} finally {
-			setEnrolling(false);
+			setEnrolling(false)
 		}
-	};
+	}
 
 	// Group workouts by week
-	const weeks: Record<number, typeof workouts> = {};
+	const weeks: Record<number, typeof workouts> = {}
 	for (const workout of workouts) {
-		if (!weeks[workout.weekNumber]) weeks[workout.weekNumber] = [];
-		weeks[workout.weekNumber].push(workout);
+		if (!weeks[workout.weekNumber]) weeks[workout.weekNumber] = []
+		weeks[workout.weekNumber].push(workout)
 	}
 
 	return (
 		<div className="max-w-4xl mx-auto px-4 py-8">
 			<Link
 				to="/plans"
-				className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 mb-6"
+				className="inline-flex items-center gap-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] mb-6"
 			>
 				<ChevronLeft className="h-4 w-4" />
 				Back to plans
@@ -82,16 +82,16 @@ function PlanDetailPage() {
 			<div className="mb-8">
 				<div className="flex items-start justify-between mb-3">
 					<h1 className="text-3xl font-bold tracking-tight">{plan.name}</h1>
-					<span className="inline-flex items-center px-2.5 py-1 text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+					<span className="inline-flex items-center px-2.5 py-1 text-sm font-medium bg-[var(--muted)] text-[var(--foreground)]">
 						{distanceLabels[plan.distanceType] || plan.distanceType}
 					</span>
 				</div>
 
-				<p className="text-neutral-500 dark:text-neutral-400 mb-4">
+				<p className="text-[var(--muted-foreground)] mb-4">
 					{plan.description}
 				</p>
 
-				<div className="flex flex-wrap items-center gap-4 text-sm text-neutral-500 dark:text-neutral-400 mb-6">
+				<div className="flex flex-wrap items-center gap-4 text-sm text-[var(--muted-foreground)] mb-6">
 					<span className="inline-flex items-center gap-1.5">
 						<Clock className="h-4 w-4" />
 						{plan.durationWeeks} weeks
@@ -114,7 +114,7 @@ function PlanDetailPage() {
 						</div>
 						<Link
 							to="/schedule"
-							className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-50 dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors"
+							className="inline-flex items-center px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
 						>
 							View Schedule
 						</Link>
@@ -127,7 +127,7 @@ function PlanDetailPage() {
 						</div>
 						<Link
 							to="/schedule"
-							className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-50 dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors"
+							className="inline-flex items-center px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
 						>
 							View Schedule
 						</Link>
@@ -136,9 +136,9 @@ function PlanDetailPage() {
 					<button
 						onClick={handleEnroll}
 						disabled={enrolling}
-						className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-50 dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						className="inline-flex items-center px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed rounded"
 					>
-						{enrolling ? "Enrolling..." : "Start This Plan"}
+						{enrolling ? 'Enrolling...' : 'Start This Plan'}
 					</button>
 				)}
 			</div>
@@ -147,26 +147,28 @@ function PlanDetailPage() {
 				{Object.entries(weeks).map(([weekNum, weekWorkouts]) => (
 					<div
 						key={weekNum}
-						className="border border-neutral-200 dark:border-neutral-800"
+						className="border border-[var(--border)] rounded"
 					>
-						<div className="px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
+						<div className="px-4 py-3 bg-[var(--muted)] border-b border-[var(--border)] rounded-t">
 							<h3 className="font-semibold text-sm">Week {weekNum}</h3>
 						</div>
-						<div className="divide-y divide-neutral-200 dark:divide-neutral-800">
+						<div className="divide-y divide-[var(--border)]">
 							{weekWorkouts.map((workout) => (
 								<div
 									key={workout.id}
 									className="px-4 py-3 flex items-center justify-between"
 								>
 									<div className="flex items-center gap-3">
-										<div className="w-8 text-xs text-neutral-400 text-center">
+										<div className="w-8 text-xs text-[var(--muted-foreground)] text-center">
 											Day {workout.dayNumber}
 										</div>
 										<div>
-											<p className="text-sm font-medium">{workout.title}</p>
-											<p className="text-xs text-neutral-500 dark:text-neutral-400">
+											<p className="text-sm font-medium">
+												{workout.title}
+											</p>
+											<p className="text-xs text-[var(--muted-foreground)]">
 												{workoutTypeLabels[workout.workoutType] ||
-													workout.workoutType}
+												workout.workoutType}
 												{workout.distanceKm && ` · ${workout.distanceKm}K`}
 												{workout.durationMinutes &&
 													` · ${workout.durationMinutes} min`}
@@ -175,10 +177,10 @@ function PlanDetailPage() {
 									</div>
 								</div>
 							))}
+							</div>
 						</div>
-					</div>
-				))}
+					))}
 			</div>
 		</div>
-	);
+	)
 }

@@ -1,82 +1,68 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { getUserActivePlan, getUserPlanSchedule } from "#/lib/plans.ts";
-import { Check, Clock, MapPin } from "lucide-react";
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { getUserActivePlan, getUserPlanSchedule } from '#/lib/plans.ts'
+import { Check } from 'lucide-react'
 
-export const Route = createFileRoute("/schedule")({
+export const Route = createFileRoute('/schedule')({
 	component: SchedulePage,
 	loader: async () => {
-		const activePlan = await getUserActivePlan();
-		if (!activePlan) return { activePlan: null, schedule: null };
+		const activePlan = await getUserActivePlan()
+		if (!activePlan) return { activePlan: null, schedule: null }
 
-		const schedule = await getUserPlanSchedule({ data: activePlan.id });
-		return { activePlan, schedule };
+		const schedule = await getUserPlanSchedule({ data: activePlan.id })
+		return { activePlan, schedule }
 	},
-});
+})
 
 const distanceLabels: Record<string, string> = {
-	"5k": "5K",
-	"10k": "10K",
-	half_marathon: "Half Marathon",
-	marathon: "Marathon",
-};
-
-const workoutTypeStyles: Record<string, string> = {
-	easy: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400",
-	tempo:
-		"bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400",
-	interval:
-		"bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400",
-	long_run:
-		"bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400",
-	rest: "bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400",
-	cross_train:
-		"bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400",
-	race: "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400",
-};
+	'5k': '5K',
+	'10k': '10K',
+	'half_marathon': 'Half Marathon',
+	'marathon': 'Marathon',
+}
 
 const workoutTypeLabels: Record<string, string> = {
-	easy: "Easy",
-	tempo: "Tempo",
-	interval: "Intervals",
-	long_run: "Long Run",
-	rest: "Rest",
-	cross_train: "Cross Train",
-	race: "Race",
-};
+	easy: 'Easy',
+	tempo: 'Tempo',
+	interval: 'Intervals',
+	long_run: 'Long Run',
+	rest: 'Rest',
+	cross_train: 'Cross Train',
+	race: 'Race',
+}
 
 function SchedulePage() {
-	const { activePlan, schedule } = Route.useLoaderData();
+	const { activePlan, schedule } = Route.useLoaderData()
 
 	if (!activePlan || !schedule) {
 		return (
 			<div className="max-w-4xl mx-auto px-4 py-16 text-center">
 				<h1 className="text-2xl font-bold mb-4">No Active Plan</h1>
-				<p className="text-neutral-500 dark:text-neutral-400 mb-6">
+				<p className="text-[var(--muted-foreground)] mb-6">
 					You don't have an active training plan. Browse our plans and start
 					your journey.
 				</p>
 				<Link
 					to="/plans"
-					className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-50 dark:text-neutral-900 dark:hover:bg-neutral-200 transition-colors"
+					className="inline-flex items-center px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
 				>
 					Browse Plans
 				</Link>
 			</div>
-		);
+		)
 	}
 
-	const { userPlan, workouts } = schedule;
+	const { userPlan, workouts } = schedule
 
 	// Group by week
-	const weeks: Record<number, typeof workouts> = {};
+	const weeks: Record<number, typeof workouts> = {}
 	for (const workout of workouts) {
-		if (!weeks[workout.weekNumber]) weeks[workout.weekNumber] = [];
-		weeks[workout.weekNumber].push(workout);
+		if (!weeks[workout.weekNumber]) weeks[workout.weekNumber] = []
+		weeks[workout.weekNumber].push(workout)
 	}
 
-	const completedCount = workouts.filter((w) => w.completed).length;
-	const totalCount = workouts.length;
-	const progressPercent = Math.round((completedCount / totalCount) * 100);
+	const completedCount = workouts.filter((w) => w.completed).length
+	const totalCount = workouts.length
+	const progressPercent = Math.round((completedCount / totalCount) * 100)
 
 	return (
 		<div className="max-w-4xl mx-auto px-4 py-8">
@@ -84,7 +70,7 @@ function SchedulePage() {
 				<h1 className="text-3xl font-bold tracking-tight mb-2">
 					{activePlan.plan.name}
 				</h1>
-				<div className="flex flex-wrap items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+				<div className="flex flex-wrap items-center gap-3 text-sm text-[var(--muted-foreground)] mb-4">
 					<span>
 						{distanceLabels[activePlan.plan.distanceType] ||
 							activePlan.plan.distanceType}
@@ -101,13 +87,13 @@ function SchedulePage() {
 					<span className="font-medium">
 						{completedCount} of {totalCount} workouts completed
 					</span>
-					<span className="text-neutral-500 dark:text-neutral-400">
+					<span className="text-[var(--muted-foreground)]">
 						{progressPercent}%
 					</span>
 				</div>
-				<div className="h-2 bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
+				<div className="h-2 bg-[var(--muted)] overflow-hidden rounded">
 					<div
-						className="h-full bg-neutral-900 dark:bg-neutral-50 transition-all"
+						className="h-full bg-[var(--accent)] transition-all"
 						style={{ width: `${progressPercent}%` }}
 					/>
 				</div>
@@ -115,16 +101,16 @@ function SchedulePage() {
 
 			<div className="space-y-6">
 				{Object.entries(weeks).map(([weekNum, weekWorkouts]) => {
-					const weekCompleted = weekWorkouts.filter((w) => w.completed).length;
-					const weekTotal = weekWorkouts.length;
-					const weekDone = weekCompleted === weekTotal;
+					const weekCompleted = weekWorkouts.filter((w) => w.completed).length
+					const weekTotal = weekWorkouts.length
+					const weekDone = weekCompleted === weekTotal
 
 					return (
 						<div
 							key={weekNum}
-							className="border border-neutral-200 dark:border-neutral-800"
+							className="border border-[var(--border)] rounded"
 						>
-							<div className="px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+							<div className="px-4 py-3 bg-[var(--muted)] border-b border-[var(--border)] flex items-center justify-between rounded-t">
 								<h3 className="font-semibold text-sm">Week {weekNum}</h3>
 								{weekDone && (
 									<span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
@@ -133,7 +119,7 @@ function SchedulePage() {
 									</span>
 								)}
 							</div>
-							<div className="divide-y divide-neutral-200 dark:divide-neutral-800">
+							<div className="divide-y divide-[var(--border)]">
 								{weekWorkouts.map((workout) => (
 									<div
 										key={workout.id}
@@ -145,27 +131,27 @@ function SchedulePage() {
 													<Check className="h-4 w-4 text-green-600 dark:text-green-400" />
 												</div>
 											) : (
-												<div className="h-8 w-8 flex items-center justify-center rounded-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
-													<span className="text-xs text-neutral-500 dark:text-neutral-400">
+												<div className="h-8 w-8 flex items-center justify-center rounded-full bg-[var(--muted)] border border-[var(--border)]">
+													<span className="text-xs text-[var(--muted-foreground)]">
 														{workout.dayNumber}
 													</span>
 												</div>
 											)}
 											<div>
 												<div className="flex items-center gap-2">
-													<p className="text-sm font-medium">{workout.title}</p>
-													<span
-														className={`inline-flex items-center px-1.5 py-0.5 text-xs font-medium border ${workoutTypeStyles[workout.workoutType] || "bg-neutral-50 border-neutral-200 text-neutral-600"}`}
-													>
+													<p className="text-sm font-medium">
+														{workout.title}
+													</p>
+													<span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium border border-[var(--border)] text-[var(--muted-foreground)]">
 														{workoutTypeLabels[workout.workoutType] ||
-															workout.workoutType}
+														workout.workoutType}
 													</span>
 												</div>
-												<p className="text-xs text-neutral-500 dark:text-neutral-400">
+												<p className="text-xs text-[var(--muted-foreground)]">
 													{workout.distanceKm && `${workout.distanceKm}K`}
 													{workout.distanceKm &&
 														workout.durationMinutes &&
-														" · "}
+														' · '}
 													{workout.durationMinutes &&
 														`${workout.durationMinutes} min`}
 												</p>
@@ -175,17 +161,17 @@ function SchedulePage() {
 											to="/workouts/$workoutId"
 											search={{ userPlanId: userPlan.id }}
 											params={{ workoutId: String(workout.id) }}
-											className="text-xs font-medium text-neutral-900 dark:text-neutral-100 hover:underline"
+											className="text-xs font-medium text-[var(--foreground)] hover:underline"
 										>
-											{workout.completed ? "View" : "Start"}
+											{workout.completed ? 'View' : 'Start'}
 										</Link>
 									</div>
 								))}
 							</div>
 						</div>
-					);
+					)
 				})}
 			</div>
 		</div>
-	);
+	)
 }
