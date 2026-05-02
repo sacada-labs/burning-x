@@ -253,18 +253,16 @@ export const getUserPlanSchedule = createServerFn({
 		const completedWorkoutIds = new Set(completions.map((c) => c.workoutId));
 		const completionMap = new Map(completions.map((c) => [c.workoutId, c]));
 
-		const visibleWorkouts = planWorkouts
-			.filter((w) => w.weekNumber >= startWeek)
-			.map((w) => ({
-				...w,
-				completed: completedWorkoutIds.has(w.id),
-				completion: completionMap.get(w.id) ?? null,
-			}));
+		const enrichedWorkouts = planWorkouts.map((w) => ({
+			...w,
+			completed: completedWorkoutIds.has(w.id),
+			completion: completionMap.get(w.id) ?? null,
+		}));
 
 		return {
 			userPlan,
 			startWeek,
-			workouts: visibleWorkouts,
+			workouts: enrichedWorkouts,
 		};
 	});
 

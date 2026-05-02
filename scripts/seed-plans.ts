@@ -1,5 +1,6 @@
 import { config } from 'dotenv'
 import { resolve } from 'path'
+import { eq } from 'drizzle-orm'
 
 // Ensure we load env from project root BEFORE importing db
 const rootDir = resolve(import.meta.dirname, '..')
@@ -265,6 +266,29 @@ const planDefinitions = [
 	},
 ]
 
+function generateWorkoutTitle(workout: {
+	week: number
+	day: number
+	title: string
+	type: string
+	distance?: number
+	duration?: number
+	instructions?: string
+}): string {
+	const type = workout.type
+	if (type === 'rest') return 'Rest Day'
+	if (type === 'race') {
+		return workout.distance ? `${workout.distance}K Race` : 'Race Day'
+	}
+	if (workout.distance) {
+		return `${workout.distance}K ${type.replace('_', ' ')}`
+	}
+	if (workout.duration) {
+		return `${workout.duration}min ${type.replace('_', ' ')}`
+	}
+	return workout.title
+}
+
 async function seed() {
 	console.log('Seeding training plans...')
 
@@ -274,32 +298,37 @@ async function seed() {
 			where: (plans, { eq }) => eq(plans.name, planDef.name),
 		})
 
+		let planId: number
+
 		if (existing) {
-			console.log(`Plan "${planDef.name}" already exists, skipping...`)
-			continue
+			console.log(`Plan "${planDef.name}" already exists, updating workouts...`)
+			planId = existing.id
+			// Delete old workouts and re-insert with clear titles
+			await db.delete(workouts).where(eq(workouts.planId, planId))
+		} else {
+			// Insert plan
+			const [plan] = await db
+				.insert(trainingPlans)
+				.values({
+					name: planDef.name,
+					description: planDef.description,
+					distanceType: planDef.distanceType,
+					durationWeeks: planDef.durationWeeks,
+					difficulty: planDef.difficulty,
+				})
+				.returning()
+			planId = plan.id
+			console.log(`Created plan: ${plan.name} (ID: ${plan.id})`)
 		}
 
-		// Insert plan
-		const [plan] = await db
-			.insert(trainingPlans)
-			.values({
-				name: planDef.name,
-				description: planDef.description,
-				distanceType: planDef.distanceType,
-				durationWeeks: planDef.durationWeeks,
-				difficulty: planDef.difficulty,
-			})
-			.returning()
-
-		console.log(`Created plan: ${plan.name} (ID: ${plan.id})`)
-
-		// Insert workouts
+		// Insert workouts with auto-generated clear titles
 		for (const workout of planDef.schedule) {
+			const title = generateWorkoutTitle(workout)
 			await db.insert(workouts).values({
-				planId: plan.id,
+				planId,
 				weekNumber: workout.week,
 				dayNumber: workout.day,
-				title: workout.title,
+				title,
 				description: workout.description,
 				workoutType: workout.type,
 				distanceKm: workout.distance ?? null,
