@@ -15,7 +15,7 @@ export default function Header() {
 					className="inline-flex items-center gap-2 text-base font-semibold tracking-tight no-underline text-[var(--foreground)]"
 				>
 					<span className="h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
-					Runna
+					burning-x
 				</Link>
 
 				{/* Desktop nav - hidden on mobile */}

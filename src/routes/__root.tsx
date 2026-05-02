@@ -42,7 +42,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 			{
 				name: 'apple-mobile-web-app-title',
-				content: 'Runna',
+				content: 'burning-x',
 			},
 			{
 				name: 'mobile-web-app-capable',
@@ -53,7 +53,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: 'telephone=no',
 			},
 			{
-				title: 'Runna',
+				title: 'burning-x',
 			},
 		],
 		links: [

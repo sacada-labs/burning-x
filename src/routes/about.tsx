@@ -7,9 +7,9 @@ export const Route = createFileRoute('/about')({
 function About() {
 	return (
 		<main className="max-w-2xl mx-auto px-4 py-12">
-			<h1 className="text-3xl font-bold tracking-tight mb-4">About Runna</h1>
+			<h1 className="text-3xl font-bold tracking-tight mb-4">About burning-x</h1>
 			<p className="text-[var(--muted-foreground)] mb-6 leading-relaxed">
-				Runna is a personal running coach in your pocket. Choose a training plan
+				burning-x is a personal running coach in your pocket. Choose a training plan
 				tailored to your goal — whether it is your first 5K or your first
 				marathon — and follow a structured schedule designed to get you there.
 			</p>

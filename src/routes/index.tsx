@@ -36,7 +36,7 @@ function HomePage() {
 				<div className="mb-6">
 					<span className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--secondary)] px-4 py-2 text-sm font-semibold text-[var(--foreground)]">
 						<span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
-						Runna
+						burning-x
 					</span>
 				</div>
 				<h1 className="text-4xl font-bold tracking-tight mb-4 sm:text-5xl">
