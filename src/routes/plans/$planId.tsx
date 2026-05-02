@@ -8,7 +8,15 @@ import {
 } from "#/lib/plans.ts";
 import { getAuthSession } from "#/lib/auth-server.ts";
 import { useState } from "react";
-import { Clock, Calendar, Target, ChevronLeft, Check, X } from "lucide-react";
+import {
+	Clock,
+	Calendar,
+	Target,
+	ChevronRight,
+	ChevronLeft,
+	Check,
+	X,
+} from "lucide-react";
 
 export const Route = createFileRoute("/plans/$planId")({
 	component: PlanDetailPage,
@@ -147,13 +155,35 @@ function PlanDetailPage() {
 
 	return (
 		<div className="max-w-4xl mx-auto px-4 py-8">
+			{/* Mobile back button */}
 			<Link
 				to="/plans"
-				className="inline-flex items-center gap-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] mb-6"
+				className="sm:hidden inline-flex items-center gap-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] mb-4"
 			>
 				<ChevronLeft className="h-4 w-4" />
-				Back to plans
+				Plans
 			</Link>
+
+			{/* Desktop breadcrumbs */}
+			<nav className="hidden sm:flex items-baseline gap-1 text-sm text-[var(--muted-foreground)] mb-6">
+				<Link
+					to="/"
+					className="shrink-0 hover:text-[var(--foreground)] transition-colors"
+				>
+					Dashboard
+				</Link>
+				<ChevronRight className="shrink-0 h-3 w-3 relative top-px" />
+				<Link
+					to="/plans"
+					className="shrink-0 hover:text-[var(--foreground)] transition-colors"
+				>
+					Plans
+				</Link>
+				<ChevronRight className="shrink-0 h-3 w-3 relative top-px" />
+				<span className="text-[var(--foreground)] truncate min-w-0">
+					{plan.name}
+				</span>
+			</nav>
 
 			<div className="mb-8">
 				<div className="flex items-start justify-between mb-3">

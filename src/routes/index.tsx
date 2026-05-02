@@ -5,13 +5,7 @@ import {
 	getUserProfile,
 } from "#/lib/plans.ts";
 import { getAuthSession } from "#/lib/auth-server.ts";
-import {
-	Calendar,
-	TrendingUp,
-	Target,
-	Flame,
-	Route as RouteIcon,
-} from "lucide-react";
+import { TrendingUp, Target, Flame, Route as RouteIcon } from "lucide-react";
 
 export const Route = createFileRoute("/")({
 	component: HomePage,
@@ -233,14 +227,6 @@ function HomePage() {
 					</div>
 				</div>
 			</div>
-
-			<Link
-				to="/schedule"
-				className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors rounded"
-			>
-				<Calendar className="h-4 w-4" />
-				View Full Schedule
-			</Link>
 		</div>
 	);
 }
