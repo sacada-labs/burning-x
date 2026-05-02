@@ -48,3 +48,101 @@ bun db:studio    # Open Drizzle Studio
 - **Formatting is handled by Biome** (`biome.json` enforces tabs and double quotes). Run `bun format` to auto-format.
 - Follow existing patterns in the codebase.
 - Make minimal changes to achieve the goal.
+
+---
+
+# App Architecture & Decisions
+
+## Core UX Philosophy
+
+- **Logged-in only**: Every route except `/`, `/auth`, and `/about` requires authentication. Unauthenticated users are redirected to `/auth`.
+- **Onboarding gate**: New users are redirected to `/onboarding` after signup to collect profile data (birth year, gender, weight, height) before accessing the app.
+- **Ultra-simple workout tracking**: No workout detail pages, no "Start" buttons, no timers. Just click a row and mark it done.
+- **Mobile-first PWA**: Bottom nav on mobile (Home, Plans, Schedule, History). Desktop header has the same nav links plus theme toggle and user menu.
+- **No breadcrumbs on mobile**: Mobile uses a simple `< Back` link pattern. Desktop uses aligned breadcrumbs.
+
+## Navigation Structure
+
+| Tab | Route | Desktop | Mobile |
+|-----|-------|---------|--------|
+| Dashboard | `/` | Header nav | Bottom nav |
+| Plans | `/plans` | Header nav | Bottom nav |
+| Plan Detail | `/plans/$planId` | Hidden | Back button |
+| Schedule | `/schedule` | Header nav | Bottom nav |
+| History | `/history` | Header nav | Bottom nav |
+| Auth | `/auth` | Hidden | Hidden |
+| About | `/about` | Footer link | Hidden |
+
+## Workout Tracking (Simplified)
+
+- Schedule rows are **clickable divs** (not buttons) with `role="button"` for accessibility.
+- Clicking a row opens an inline effort selector: `[Easy] [Moderate] [Hard] [Just Done]`.
+- Clicking the same row again **closes** the selector.
+- **Rest days are not clickable**.
+- Completed rows can be clicked to **change effort** or **undo completion**.
+- No auto-mark-as-done. No notes. No separate workout detail screen.
+- Effort is optional — "Just Done" marks complete without effort.
+
+## Plan Enrollment Flow
+
+1. User clicks "Start This Plan" on a plan detail page.
+2. **Fitness Assessment modal** opens with:
+   - Training days per week selector: `[2 days] [3 days] [4 days]`
+   - Checkboxes: can run 2K/5K/10K nonstop, 5K under 30min
+   - Weekly mileage input
+3. Assessment derives a `fitness_level` (beginner/intermediate/advanced).
+4. Max **2 concurrent active plans** enforced.
+5. User can **unenroll** from any active plan at any time.
+
+## Dashboard Design
+
+- **Next Workout** card is always at the top.
+- When all workouts are complete, a **Plan Complete** celebration banner replaces the Next Workout card.
+- Stats cards: **Overall Progress** (%), **Distance** (total KM run), **Calories** (estimated burned).
+- **No "View Full Schedule" button** — redundant with bottom nav.
+- User's name displayed below "Dashboard" heading.
+
+## Data Display Rules
+
+- Distance: always shown as `5K`, `3.5K`, etc. (use `toFixed(1)` for decimals).
+- Duration: always shown as `25min` (not `25m`).
+- Pace: calculated as `min/km` when both distance and duration exist.
+- Schedule row titles are generated as `{distance}K {type} / {duration}min / {pace}` (e.g., `5K easy / 25min / 5:00`).
+- Rest days show "Rest Day".
+
+## Color System
+
+- Uses CSS custom properties defined in `src/styles.css`:
+  - `--background`, `--foreground`, `--primary`, `--primary-foreground`
+  - `--muted`, `--muted-foreground`, `--secondary`, `--border`, `--accent`
+- **Never hardcode Tailwind neutral colors** like `bg-gray-100` or `text-gray-500`. Always use `bg-[var(--muted)]` or `text-[var(--muted-foreground)]`.
+- Success states: `text-green-600 dark:text-green-400` for icons, `text-green-700 dark:text-green-400` for text.
+- Destructive states: `text-red-600 dark:text-red-400`.
+
+## Database Schema Notes
+
+- `user_plans` has `trainingDaysPerWeek` (default 3) and `fitnessLevel`.
+- `workout_completions` stores `effortFeedback` only (easy/moderate/hard). No notes, no actual data.
+- `plan_assessments` stores the pre-enrollment fitness answers.
+- No DB-level foreign keys (Drizzle relations only). Handle referential integrity in code.
+
+## Server Functions Pattern
+
+- All data fetching uses `createServerFn` from `@tanstack/react-start`.
+- `.inputValidator()` is used for input validation (not `.validator()`).
+- Auth checks in loaders use `getAuthSession()` (server-side). Never use `authClient.getSession()` in loaders.
+- Client components use `authClient.useSession()` for reactive session state.
+
+## Seeding
+
+- Training plans and workouts are seeded via `scripts/seed-plans.ts`.
+- Re-seeding updates existing plans by deleting old workouts and re-inserting with auto-generated titles.
+- Run with: `npx tsx scripts/seed-plans.ts`
+
+## Build Checklist
+
+Before committing, always:
+1. `bun run build` — must pass with no errors
+2. `bun format --write <changed-files>` — auto-format with Biome
+3. `bun db:push` — if schema changed, push to DB
+4. `npx tsx scripts/seed-plans.ts` — if seed data changed
