@@ -68,11 +68,7 @@ export default function Header() {
 				)}
 
 				<div className="flex items-center gap-2">
-					{isLoggedIn && (
-						<div className="hidden sm:block">
-							<BetterAuthHeader />
-						</div>
-					)}
+					{isLoggedIn && <BetterAuthHeader />}
 					<ThemeToggle />
 				</div>
 			</nav>
