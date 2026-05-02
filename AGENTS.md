@@ -71,6 +71,7 @@ bun db:studio    # Open Drizzle Studio
 | Schedule | `/schedule` | Header nav | Bottom nav |
 | History | `/history` | Header nav | Bottom nav |
 | Auth | `/auth` | Hidden | Hidden |
+| Settings | `/settings` | Header nav | Bottom nav |
 | About | `/about` | Footer link | Hidden |
 
 ## Workout Tracking (Simplified)

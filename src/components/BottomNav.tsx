@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { authClient } from "#/lib/auth-client";
-import { Home, Target, Calendar, History } from "lucide-react";
+import { Home, Target, Calendar, History, Settings } from "lucide-react";
 
 export default function BottomNav() {
 	const { data: session } = authClient.useSession();
@@ -14,6 +14,7 @@ export default function BottomNav() {
 		{ to: "/plans", label: "Plans", icon: Target },
 		{ to: "/schedule", label: "Schedule", icon: Calendar },
 		{ to: "/history", label: "History", icon: History },
+		{ to: "/settings", label: "Settings", icon: Settings },
 	];
 
 	return (

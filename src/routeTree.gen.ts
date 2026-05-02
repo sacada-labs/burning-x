@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as HistoryRouteImport } from './routes/history'
@@ -19,6 +20,11 @@ import { Route as PlansIndexRouteImport } from './routes/plans/index'
 import { Route as PlansPlanIdRouteImport } from './routes/plans/$planId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ScheduleRoute = ScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/history': typeof HistoryRoute
   '/onboarding': typeof OnboardingRoute
   '/schedule': typeof ScheduleRoute
+  '/settings': typeof SettingsRoute
   '/plans/$planId': typeof PlansPlanIdRoute
   '/plans/': typeof PlansIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/history': typeof HistoryRoute
   '/onboarding': typeof OnboardingRoute
   '/schedule': typeof ScheduleRoute
+  '/settings': typeof SettingsRoute
   '/plans/$planId': typeof PlansPlanIdRoute
   '/plans': typeof PlansIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/history': typeof HistoryRoute
   '/onboarding': typeof OnboardingRoute
   '/schedule': typeof ScheduleRoute
+  '/settings': typeof SettingsRoute
   '/plans/$planId': typeof PlansPlanIdRoute
   '/plans/': typeof PlansIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/onboarding'
     | '/schedule'
+    | '/settings'
     | '/plans/$planId'
     | '/plans/'
     | '/api/auth/$'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/onboarding'
     | '/schedule'
+    | '/settings'
     | '/plans/$planId'
     | '/plans'
     | '/api/auth/$'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/onboarding'
     | '/schedule'
+    | '/settings'
     | '/plans/$planId'
     | '/plans/'
     | '/api/auth/$'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   OnboardingRoute: typeof OnboardingRoute
   ScheduleRoute: typeof ScheduleRoute
+  SettingsRoute: typeof SettingsRoute
   PlansPlanIdRoute: typeof PlansPlanIdRoute
   PlansIndexRoute: typeof PlansIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -149,6 +162,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/schedule': {
       id: '/schedule'
       path: '/schedule'
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   OnboardingRoute: OnboardingRoute,
   ScheduleRoute: ScheduleRoute,
+  SettingsRoute: SettingsRoute,
   PlansPlanIdRoute: PlansPlanIdRoute,
   PlansIndexRoute: PlansIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

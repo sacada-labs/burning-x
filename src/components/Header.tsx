@@ -50,6 +50,20 @@ export default function Header() {
 						>
 							Schedule
 						</Link>
+						<Link
+							to="/history"
+							className="nav-link"
+							activeProps={{ className: "nav-link is-active" }}
+						>
+							History
+						</Link>
+						<Link
+							to="/settings"
+							className="nav-link"
+							activeProps={{ className: "nav-link is-active" }}
+						>
+							Settings
+						</Link>
 					</div>
 				)}
 
