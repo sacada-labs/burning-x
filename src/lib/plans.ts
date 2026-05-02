@@ -6,8 +6,12 @@ import {
 	workouts,
 	userPlans,
 	workoutCompletions,
+	userProfiles,
+	planAssessments,
 } from "#/db/schema.ts";
 import { getSession } from "./session.ts";
+
+// ─── Training Plans ───────────────────────────────────────────────
 
 export const getTrainingPlans = createServerFn({
 	method: "GET",
@@ -25,7 +29,6 @@ export const getTrainingPlan = createServerFn({
 		const plan = await db.query.trainingPlans.findFirst({
 			where: eq(trainingPlans.id, planId),
 		});
-
 		if (!plan) throw new Error("Plan not found");
 
 		const planWorkouts = await db.query.workouts.findMany({
@@ -38,6 +41,68 @@ export const getTrainingPlan = createServerFn({
 
 		return { plan, workouts: planWorkouts };
 	});
+
+// ─── User Profile / Onboarding ────────────────────────────────────
+
+export const getUserProfile = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	const session = await getSession();
+	if (!session?.user) return null;
+
+	return db.query.userProfiles.findFirst({
+		where: eq(userProfiles.userId, session.user.id),
+	});
+});
+
+export const saveUserProfile = createServerFn({
+	method: "POST",
+})
+	.inputValidator(
+		(data: {
+			birthYear?: number;
+			gender?: string;
+			weightKg?: number;
+			heightCm?: number;
+		}) => data,
+	)
+	.handler(async ({ data }) => {
+		const session = await getSession();
+		if (!session?.user) throw new Error("Not authenticated");
+
+		const existing = await db.query.userProfiles.findFirst({
+			where: eq(userProfiles.userId, session.user.id),
+		});
+
+		if (existing) {
+			await db
+				.update(userProfiles)
+				.set({
+					birthYear: data.birthYear ?? existing.birthYear,
+					gender: data.gender ?? existing.gender,
+					weightKg: data.weightKg ?? existing.weightKg,
+					heightCm: data.heightCm ?? existing.heightCm,
+					updatedAt: new Date(),
+				})
+				.where(eq(userProfiles.id, existing.id));
+			return existing.id;
+		}
+
+		const [profile] = await db
+			.insert(userProfiles)
+			.values({
+				userId: session.user.id,
+				birthYear: data.birthYear ?? null,
+				gender: data.gender ?? null,
+				weightKg: data.weightKg ?? null,
+				heightCm: data.heightCm ?? null,
+			})
+			.returning();
+
+		return profile.id;
+	});
+
+// ─── Active Plan ──────────────────────────────────────────────────
 
 export const getUserActivePlan = createServerFn({
 	method: "GET",
@@ -56,11 +121,24 @@ export const getUserActivePlan = createServerFn({
 	});
 });
 
+// ─── Enrollment with Assessment ───────────────────────────────────
+
 export const enrollInPlan = createServerFn({
 	method: "POST",
 })
-	.inputValidator((planId: number) => planId)
-	.handler(async ({ data: planId }) => {
+	.inputValidator(
+		(data: {
+			planId: number;
+			assessment: {
+				canRun2kNonstop?: boolean;
+				canRun5kNonstop?: boolean;
+				canRun5kUnder30?: boolean;
+				canRun10kNonstop?: boolean;
+				recentWeeklyMileage?: number;
+			};
+		}) => data,
+	)
+	.handler(async ({ data }) => {
 		const session = await getSession();
 		if (!session?.user) throw new Error("Not authenticated");
 
@@ -68,12 +146,21 @@ export const enrollInPlan = createServerFn({
 		const existing = await db.query.userPlans.findFirst({
 			where: and(
 				eq(userPlans.userId, session.user.id),
-				eq(userPlans.planId, planId),
+				eq(userPlans.planId, data.planId),
 				eq(userPlans.status, "active"),
 			),
 		});
 
 		if (existing) throw new Error("Already enrolled in this plan");
+
+		// Derive fitness level from assessment
+		let fitnessLevel = "beginner";
+		const a = data.assessment;
+		if (a.canRun10kNonstop) {
+			fitnessLevel = "advanced";
+		} else if (a.canRun5kUnder30 || a.canRun5kNonstop) {
+			fitnessLevel = "intermediate";
+		}
 
 		// Deactivate any other active plans
 		await db
@@ -91,14 +178,27 @@ export const enrollInPlan = createServerFn({
 			.insert(userPlans)
 			.values({
 				userId: session.user.id,
-				planId,
+				planId: data.planId,
 				startDate: new Date(),
 				status: "active",
+				fitnessLevel,
 			})
 			.returning();
 
+		// Save assessment
+		await db.insert(planAssessments).values({
+			userPlanId: userPlan.id,
+			canRun2kNonstop: a.canRun2kNonstop ?? null,
+			canRun5kNonstop: a.canRun5kNonstop ?? null,
+			canRun5kUnder30: a.canRun5kUnder30 ?? null,
+			canRun10kNonstop: a.canRun10kNonstop ?? null,
+			recentWeeklyMileage: a.recentWeeklyMileage ?? null,
+		});
+
 		return userPlan;
 	});
+
+// ─── Schedule ─────────────────────────────────────────────────────
 
 export const getUserPlanSchedule = createServerFn({
 	method: "GET",
@@ -133,15 +233,19 @@ export const getUserPlanSchedule = createServerFn({
 		});
 
 		const completedWorkoutIds = new Set(completions.map((c) => c.workoutId));
+		const completionMap = new Map(completions.map((c) => [c.workoutId, c]));
 
 		return {
 			userPlan,
 			workouts: planWorkouts.map((w) => ({
 				...w,
 				completed: completedWorkoutIds.has(w.id),
+				completion: completionMap.get(w.id) ?? null,
 			})),
 		};
 	});
+
+// ─── Complete Workout (simplified) ────────────────────────────────
 
 export const completeWorkout = createServerFn({
 	method: "POST",
@@ -150,10 +254,8 @@ export const completeWorkout = createServerFn({
 		(data: {
 			userPlanId: number;
 			workoutId: number;
-			actualDistanceKm?: number;
-			actualDurationMinutes?: number;
+			effortFeedback?: "easy" | "moderate" | "hard";
 			notes?: string;
-			perceivedEffort?: number;
 		}) => data,
 	)
 	.handler(async ({ data }) => {
@@ -169,26 +271,13 @@ export const completeWorkout = createServerFn({
 
 		if (!userPlan) throw new Error("Plan not found");
 
-		// Calculate pace if both distance and duration provided
-		let pace: number | null = null;
-		if (
-			data.actualDistanceKm &&
-			data.actualDistanceKm > 0 &&
-			data.actualDurationMinutes
-		) {
-			pace = data.actualDurationMinutes / data.actualDistanceKm;
-		}
-
 		const [completion] = await db
 			.insert(workoutCompletions)
 			.values({
 				userPlanId: data.userPlanId,
 				workoutId: data.workoutId,
-				actualDistanceKm: data.actualDistanceKm ?? null,
-				actualDurationMinutes: data.actualDurationMinutes ?? null,
-				actualPacePerKm: pace,
+				effortFeedback: data.effortFeedback ?? null,
 				notes: data.notes ?? null,
-				perceivedEffort: data.perceivedEffort ?? null,
 			})
 			.returning();
 

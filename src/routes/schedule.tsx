@@ -1,44 +1,69 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import { getUserActivePlan, getUserPlanSchedule } from '#/lib/plans.ts'
-import { getAuthSession } from '#/lib/auth-server.ts'
-import { Check } from 'lucide-react'
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import {
+	getUserActivePlan,
+	getUserPlanSchedule,
+	completeWorkout,
+} from "#/lib/plans.ts";
+import { getAuthSession } from "#/lib/auth-server.ts";
+import { useState } from "react";
+import { Check } from "lucide-react";
 
-export const Route = createFileRoute('/schedule')({
+export const Route = createFileRoute("/schedule")({
 	component: SchedulePage,
 	loader: async () => {
-		const session = await getAuthSession()
+		const session = await getAuthSession();
 		if (!session?.user) {
-			throw redirect({ to: '/auth' })
+			throw redirect({ to: "/auth" });
 		}
-		const activePlan = await getUserActivePlan()
-		if (!activePlan) return { activePlan: null, schedule: null }
+		const activePlan = await getUserActivePlan();
+		if (!activePlan) return { activePlan: null, schedule: null };
 
-		const schedule = await getUserPlanSchedule({ data: activePlan.id })
-		return { activePlan, schedule }
+		const schedule = await getUserPlanSchedule({ data: activePlan.id });
+		return { activePlan, schedule };
 	},
-})
+});
 
 const distanceLabels: Record<string, string> = {
-	'5k': '5K',
-	'10k': '10K',
-	'half_marathon': 'Half Marathon',
-	'marathon': 'Marathon',
-}
+	"5k": "5K",
+	"10k": "10K",
+	half_marathon: "Half Marathon",
+	marathon: "Marathon",
+};
 
 const workoutTypeLabels: Record<string, string> = {
-	easy: 'Easy',
-	tempo: 'Tempo',
-	interval: 'Intervals',
-	long_run: 'Long Run',
-	rest: 'Rest',
-	cross_train: 'Cross Train',
-	race: 'Race',
-}
+	easy: "Easy",
+	tempo: "Tempo",
+	interval: "Intervals",
+	long_run: "Long Run",
+	rest: "Rest",
+	cross_train: "Cross Train",
+	race: "Race",
+};
+
+type WorkoutItem = {
+	id: number;
+	weekNumber: number;
+	dayNumber: number;
+	title: string;
+	workoutType: string;
+	distanceKm: number | null;
+	durationMinutes: number | null;
+	instructions: string | null;
+	completed: boolean;
+	completion: { effortFeedback: string | null; notes: string | null } | null;
+};
 
 function SchedulePage() {
-	const { activePlan, schedule } = Route.useLoaderData()
+	const { activePlan, schedule } = Route.useLoaderData();
+	const [localWorkouts, setLocalWorkouts] = useState<WorkoutItem[] | null>(
+		schedule?.workouts ?? null,
+	);
+	const [completingId, setCompletingId] = useState<number | null>(null);
+	const [effort, setEffort] = useState<"easy" | "moderate" | "hard" | "">("");
+	const [notes, setNotes] = useState("");
+	const [loading, setLoading] = useState(false);
 
-	if (!activePlan || !schedule) {
+	if (!activePlan || !schedule || !localWorkouts) {
 		return (
 			<div className="max-w-4xl mx-auto px-4 py-16 text-center">
 				<h1 className="text-2xl font-bold mb-4">No Active Plan</h1>
@@ -53,21 +78,71 @@ function SchedulePage() {
 					Browse Plans
 				</Link>
 			</div>
-		)
+		);
 	}
 
-	const { userPlan, workouts } = schedule
+	const { userPlan } = schedule;
 
 	// Group by week
-	const weeks: Record<number, typeof workouts> = {}
-	for (const workout of workouts) {
-		if (!weeks[workout.weekNumber]) weeks[workout.weekNumber] = []
-		weeks[workout.weekNumber].push(workout)
+	const weeks: Record<number, WorkoutItem[]> = {};
+	for (const workout of localWorkouts) {
+		if (!weeks[workout.weekNumber]) weeks[workout.weekNumber] = [];
+		weeks[workout.weekNumber].push(workout);
 	}
 
-	const completedCount = workouts.filter((w) => w.completed).length
-	const totalCount = workouts.length
-	const progressPercent = Math.round((completedCount / totalCount) * 100)
+	const completedCount = localWorkouts.filter((w) => w.completed).length;
+	const totalCount = localWorkouts.length;
+	const progressPercent = Math.round((completedCount / totalCount) * 100);
+
+	const handleToggleComplete = async (workout: WorkoutItem) => {
+		if (workout.completed) return;
+		setCompletingId(workout.id);
+		setEffort("");
+		setNotes("");
+	};
+
+	const handleConfirmComplete = async (workout: WorkoutItem) => {
+		setLoading(true);
+		try {
+			await completeWorkout({
+				data: {
+					userPlanId: userPlan.id,
+					workoutId: workout.id,
+					effortFeedback: effort || undefined,
+					notes: notes || undefined,
+				},
+			});
+			setLocalWorkouts((prev) =>
+				prev
+					? prev.map((w) =>
+							w.id === workout.id
+								? {
+										...w,
+										completed: true,
+										completion: {
+											effortFeedback: effort || null,
+											notes: notes || null,
+										},
+									}
+								: w,
+						)
+					: prev,
+			);
+			setCompletingId(null);
+			setEffort("");
+			setNotes("");
+		} catch (err) {
+			alert(err instanceof Error ? err.message : "Failed to complete");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleCancelComplete = () => {
+		setCompletingId(null);
+		setEffort("");
+		setNotes("");
+	};
 
 	return (
 		<div className="max-w-4xl mx-auto px-4 py-8">
@@ -106,9 +181,9 @@ function SchedulePage() {
 
 			<div className="space-y-6">
 				{Object.entries(weeks).map(([weekNum, weekWorkouts]) => {
-					const weekCompleted = weekWorkouts.filter((w) => w.completed).length
-					const weekTotal = weekWorkouts.length
-					const weekDone = weekCompleted === weekTotal
+					const weekCompleted = weekWorkouts.filter((w) => w.completed).length;
+					const weekTotal = weekWorkouts.length;
+					const weekDone = weekCompleted === weekTotal;
 
 					return (
 						<div
@@ -125,58 +200,112 @@ function SchedulePage() {
 								)}
 							</div>
 							<div className="divide-y divide-[var(--border)]">
-								{weekWorkouts.map((workout) => (
-									<div
-										key={workout.id}
-										className="px-4 py-3 flex items-center justify-between"
-									>
-										<div className="flex items-center gap-3">
-											{workout.completed ? (
-												<div className="h-8 w-8 flex items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-													<Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+								{weekWorkouts.map((workout) => {
+									const isCompleting = completingId === workout.id;
+
+									return (
+										<div key={workout.id}>
+											<div className="px-4 py-3 flex items-center justify-between">
+												<div className="flex items-center gap-3">
+													<button
+														onClick={() =>
+															!workout.completed &&
+															handleToggleComplete(workout)
+														}
+														className={`h-8 w-8 flex items-center justify-center rounded-full border transition-colors ${
+															workout.completed
+																? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+																: "bg-[var(--muted)] border-[var(--border)] hover:border-[var(--foreground)]"
+														}`}
+														disabled={workout.completed}
+													>
+														{workout.completed ? (
+															<Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+														) : (
+															<span className="text-xs text-[var(--muted-foreground)]">
+																{workout.dayNumber}
+															</span>
+														)}
+													</button>
+													<div>
+														<div className="flex items-center gap-2">
+															<p className="text-sm font-medium">
+																{workout.title}
+															</p>
+															<span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium border border-[var(--border)] text-[var(--muted-foreground)]">
+																{workoutTypeLabels[workout.workoutType] ||
+																	workout.workoutType}
+															</span>
+														</div>
+														<p className="text-xs text-[var(--muted-foreground)]">
+															{workout.distanceKm && `${workout.distanceKm}K`}
+															{workout.distanceKm &&
+																workout.durationMinutes &&
+																" · "}
+															{workout.durationMinutes &&
+																`${workout.durationMinutes} min`}
+														</p>
+													</div>
 												</div>
-											) : (
-												<div className="h-8 w-8 flex items-center justify-center rounded-full bg-[var(--muted)] border border-[var(--border)]">
-													<span className="text-xs text-[var(--muted-foreground)]">
-														{workout.dayNumber}
-													</span>
+											</div>
+
+											{isCompleting && (
+												<div className="px-4 pb-4 pl-14">
+													<div className="border border-[var(--border)] p-4 rounded">
+														<p className="text-sm font-medium mb-3">
+															How did it feel?
+														</p>
+														<div className="flex gap-2 mb-3">
+															{(["easy", "moderate", "hard"] as const).map(
+																(level) => (
+																	<button
+																		key={level}
+																		onClick={() => setEffort(level)}
+																		className={`px-3 py-1.5 text-xs font-medium border rounded transition-colors ${
+																			effort === level
+																				? "bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)]"
+																				: "border-[var(--border)] hover:bg-[var(--secondary)]"
+																		}`}
+																	>
+																		{level.charAt(0).toUpperCase() +
+																			level.slice(1)}
+																	</button>
+																),
+															)}
+														</div>
+														<textarea
+															value={notes}
+															onChange={(e) => setNotes(e.target.value)}
+															rows={2}
+															placeholder="Optional notes..."
+															className="flex w-full border border-[var(--border)] bg-transparent px-3 py-2 text-sm focus:outline-none focus:border-[var(--foreground)] resize-none rounded mb-3"
+														/>
+														<div className="flex gap-2">
+															<button
+																onClick={handleCancelComplete}
+																className="px-3 py-1.5 text-xs font-medium border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors rounded"
+															>
+																Cancel
+															</button>
+															<button
+																onClick={() => handleConfirmComplete(workout)}
+																disabled={loading}
+																className="px-3 py-1.5 text-xs font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity disabled:opacity-50 rounded"
+															>
+																{loading ? "Saving..." : "Mark Done"}
+															</button>
+														</div>
+													</div>
 												</div>
 											)}
-											<div>
-												<div className="flex items-center gap-2">
-													<p className="text-sm font-medium">
-														{workout.title}
-													</p>
-													<span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium border border-[var(--border)] text-[var(--muted-foreground)]">
-														{workoutTypeLabels[workout.workoutType] ||
-														workout.workoutType}
-													</span>
-												</div>
-												<p className="text-xs text-[var(--muted-foreground)]">
-													{workout.distanceKm && `${workout.distanceKm}K`}
-													{workout.distanceKm &&
-														workout.durationMinutes &&
-														' · '}
-													{workout.durationMinutes &&
-														`${workout.durationMinutes} min`}
-												</p>
-											</div>
 										</div>
-										<Link
-											to="/workouts/$workoutId"
-											search={{ userPlanId: userPlan.id }}
-											params={{ workoutId: String(workout.id) }}
-											className="text-xs font-medium text-[var(--foreground)] hover:underline"
-										>
-											{workout.completed ? 'View' : 'Start'}
-										</Link>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						</div>
-					)
+					);
 				})}
 			</div>
 		</div>
-	)
+	);
 }

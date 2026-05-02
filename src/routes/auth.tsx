@@ -1,6 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { authClient } from '#/lib/auth-client'
+import { getUserProfile } from '#/lib/plans.ts'
 
 export const Route = createFileRoute('/auth')({
 	component: AuthPage,
@@ -14,6 +15,7 @@ function AuthPage() {
 	const [name, setName] = useState('')
 	const [error, setError] = useState('')
 	const [loading, setLoading] = useState(false)
+	const [signedUp, setSignedUp] = useState(false)
 
 	if (isPending) {
 		return (
@@ -56,6 +58,8 @@ function AuthPage() {
 				})
 				if (result.error) {
 					setError(result.error.message || 'Sign up failed')
+				} else {
+					setSignedUp(true)
 				}
 			} else {
 				const result = await authClient.signIn.email({
@@ -64,6 +68,14 @@ function AuthPage() {
 				})
 				if (result.error) {
 					setError(result.error.message || 'Sign in failed')
+				} else {
+					// Check if user has profile, redirect accordingly
+					const profile = await getUserProfile()
+					if (!profile) {
+						window.location.href = '/onboarding'
+					} else {
+						window.location.href = '/'
+					}
 				}
 			}
 		} catch (err) {
@@ -71,6 +83,24 @@ function AuthPage() {
 		} finally {
 			setLoading(false)
 		}
+	}
+
+	if (signedUp) {
+		return (
+			<div className="max-w-md mx-auto px-4 py-16 text-center">
+				<h1 className="text-2xl font-bold mb-4">Account created</h1>
+				<p className="text-[var(--muted-foreground)] mb-8">
+					Welcome to burning-x. Let us set up your profile before you start
+					training.
+				</p>
+				<Link
+					to="/onboarding"
+					className="inline-flex items-center px-6 py-3 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
+				>
+					Set Up Profile
+				</Link>
+			</div>
+		)
 	}
 
 	return (

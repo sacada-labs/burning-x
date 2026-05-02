@@ -1,6 +1,25 @@
 import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
 import { sql, relations } from "drizzle-orm";
 
+export const userProfiles = sqliteTable("user_profiles", {
+	id: integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
+	userId: text("user_id").notNull().unique(),
+	birthYear: integer("birth_year"),
+	gender: text(), // male, female, other, prefer_not_to_say
+	weightKg: real("weight_kg"),
+	heightCm: real("height_cm"),
+	createdAt: integer("created_at", { mode: "timestamp" }).default(
+		sql`(unixepoch())`,
+	),
+	updatedAt: integer("updated_at", { mode: "timestamp" }).default(
+		sql`(unixepoch())`,
+	),
+});
+
+export const userProfilesRelations = relations(userProfiles, ({ many }) => ({
+	assessments: many(planAssessments),
+}));
+
 export const trainingPlans = sqliteTable("training_plans", {
 	id: integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
 	name: text().notNull(),
@@ -48,6 +67,7 @@ export const userPlans = sqliteTable("user_plans", {
 	planId: integer("plan_id").notNull(),
 	startDate: integer("start_date", { mode: "timestamp" }).notNull(),
 	status: text().notNull().default("active"),
+	fitnessLevel: text("fitness_level").default("beginner"), // beginner, intermediate, advanced (derived from assessment)
 	createdAt: integer("created_at", { mode: "timestamp" }).default(
 		sql`(unixepoch())`,
 	),
@@ -59,6 +79,27 @@ export const userPlansRelations = relations(userPlans, ({ one, many }) => ({
 		references: [trainingPlans.id],
 	}),
 	completions: many(workoutCompletions),
+	assessment: one(planAssessments),
+}));
+
+export const planAssessments = sqliteTable("plan_assessments", {
+	id: integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
+	userPlanId: integer("user_plan_id").notNull().unique(),
+	canRun2kNonstop: integer("can_run_2k_nonstop", { mode: "boolean" }),
+	canRun5kNonstop: integer("can_run_5k_nonstop", { mode: "boolean" }),
+	canRun5kUnder30: integer("can_run_5k_under_30", { mode: "boolean" }),
+	canRun10kNonstop: integer("can_run_10k_nonstop", { mode: "boolean" }),
+	recentWeeklyMileage: integer("recent_weekly_mileage"), // km per week
+	createdAt: integer("created_at", { mode: "timestamp" }).default(
+		sql`(unixepoch())`,
+	),
+});
+
+export const planAssessmentsRelations = relations(planAssessments, ({ one }) => ({
+	userPlan: one(userPlans, {
+		fields: [planAssessments.userPlanId],
+		references: [userPlans.id],
+	}),
 }));
 
 export const workoutCompletions = sqliteTable("workout_completions", {
@@ -68,11 +109,9 @@ export const workoutCompletions = sqliteTable("workout_completions", {
 	completedDate: integer("completed_date", { mode: "timestamp" }).default(
 		sql`(unixepoch())`,
 	),
-	actualDistanceKm: real("actual_distance_km"),
-	actualDurationMinutes: integer("actual_duration_minutes"),
-	actualPacePerKm: real("actual_pace_per_km"),
+	// Simplified: just optional effort feedback and notes
+	effortFeedback: text("effort_feedback"), // easy, moderate, hard
 	notes: text(),
-	perceivedEffort: integer("perceived_effort"),
 });
 
 export const workoutCompletionsRelations = relations(

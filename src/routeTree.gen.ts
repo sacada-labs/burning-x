@@ -10,17 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlansIndexRouteImport } from './routes/plans/index'
-import { Route as WorkoutsWorkoutIdRouteImport } from './routes/workouts/$workoutId'
 import { Route as PlansPlanIdRouteImport } from './routes/plans/$planId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const ScheduleRoute = ScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -43,11 +48,6 @@ const PlansIndexRoute = PlansIndexRouteImport.update({
   path: '/plans/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WorkoutsWorkoutIdRoute = WorkoutsWorkoutIdRouteImport.update({
-  id: '/workouts/$workoutId',
-  path: '/workouts/$workoutId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PlansPlanIdRoute = PlansPlanIdRouteImport.update({
   id: '/plans/$planId',
   path: '/plans/$planId',
@@ -63,9 +63,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/onboarding': typeof OnboardingRoute
   '/schedule': typeof ScheduleRoute
   '/plans/$planId': typeof PlansPlanIdRoute
-  '/workouts/$workoutId': typeof WorkoutsWorkoutIdRoute
   '/plans/': typeof PlansIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -73,9 +73,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/onboarding': typeof OnboardingRoute
   '/schedule': typeof ScheduleRoute
   '/plans/$planId': typeof PlansPlanIdRoute
-  '/workouts/$workoutId': typeof WorkoutsWorkoutIdRoute
   '/plans': typeof PlansIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -84,9 +84,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/onboarding': typeof OnboardingRoute
   '/schedule': typeof ScheduleRoute
   '/plans/$planId': typeof PlansPlanIdRoute
-  '/workouts/$workoutId': typeof WorkoutsWorkoutIdRoute
   '/plans/': typeof PlansIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -96,9 +96,9 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/onboarding'
     | '/schedule'
     | '/plans/$planId'
-    | '/workouts/$workoutId'
     | '/plans/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -106,9 +106,9 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/onboarding'
     | '/schedule'
     | '/plans/$planId'
-    | '/workouts/$workoutId'
     | '/plans'
     | '/api/auth/$'
   id:
@@ -116,9 +116,9 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/onboarding'
     | '/schedule'
     | '/plans/$planId'
-    | '/workouts/$workoutId'
     | '/plans/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -127,9 +127,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
+  OnboardingRoute: typeof OnboardingRoute
   ScheduleRoute: typeof ScheduleRoute
   PlansPlanIdRoute: typeof PlansPlanIdRoute
-  WorkoutsWorkoutIdRoute: typeof WorkoutsWorkoutIdRoute
   PlansIndexRoute: typeof PlansIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -141,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/schedule'
       fullPath: '/schedule'
       preLoaderRoute: typeof ScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -171,13 +178,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlansIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/workouts/$workoutId': {
-      id: '/workouts/$workoutId'
-      path: '/workouts/$workoutId'
-      fullPath: '/workouts/$workoutId'
-      preLoaderRoute: typeof WorkoutsWorkoutIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/plans/$planId': {
       id: '/plans/$planId'
       path: '/plans/$planId'
@@ -199,9 +199,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
+  OnboardingRoute: OnboardingRoute,
   ScheduleRoute: ScheduleRoute,
   PlansPlanIdRoute: PlansPlanIdRoute,
-  WorkoutsWorkoutIdRoute: WorkoutsWorkoutIdRoute,
   PlansIndexRoute: PlansIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

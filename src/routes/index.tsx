@@ -1,33 +1,43 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import { getUserActivePlan, getUserPlanSchedule } from '#/lib/plans.ts'
-import { getAuthSession } from '#/lib/auth-server.ts'
-import { Calendar, TrendingUp, Target, ArrowRight } from 'lucide-react'
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import {
+	getUserActivePlan,
+	getUserPlanSchedule,
+	getUserProfile,
+} from "#/lib/plans.ts";
+import { getAuthSession } from "#/lib/auth-server.ts";
+import { Calendar, TrendingUp, Target } from "lucide-react";
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
 	component: HomePage,
 	loader: async () => {
-		const session = await getAuthSession()
+		const session = await getAuthSession();
 		if (!session?.user) {
-			return { activePlan: null, schedule: null, isLoggedIn: false }
+			return { activePlan: null, schedule: null, isLoggedIn: false };
 		}
 
-		const activePlan = await getUserActivePlan()
-		if (!activePlan) return { activePlan: null, schedule: null, isLoggedIn: true }
+		const profile = await getUserProfile();
+		if (!profile) {
+			throw redirect({ to: "/onboarding" });
+		}
 
-		const schedule = await getUserPlanSchedule({ data: activePlan.id })
-		return { activePlan, schedule, isLoggedIn: true }
+		const activePlan = await getUserActivePlan();
+		if (!activePlan)
+			return { activePlan: null, schedule: null, isLoggedIn: true };
+
+		const schedule = await getUserPlanSchedule({ data: activePlan.id });
+		return { activePlan, schedule, isLoggedIn: true };
 	},
-})
+});
 
 const distanceLabels: Record<string, string> = {
-	'5k': '5K',
-	'10k': '10K',
-	half_marathon: 'Half Marathon',
-	marathon: 'Marathon',
-}
+	"5k": "5K",
+	"10k": "10K",
+	half_marathon: "Half Marathon",
+	marathon: "Marathon",
+};
 
 function HomePage() {
-	const { activePlan, schedule, isLoggedIn } = Route.useLoaderData()
+	const { activePlan, schedule, isLoggedIn } = Route.useLoaderData();
 
 	// Landing page for non-logged-in users
 	if (!isLoggedIn) {
@@ -53,7 +63,7 @@ function HomePage() {
 					Get Started
 				</Link>
 			</main>
-		)
+		);
 	}
 
 	// Dashboard for logged-in users without an active plan
@@ -76,35 +86,35 @@ function HomePage() {
 					</Link>
 				</div>
 			</main>
-		)
+		);
 	}
 
 	// Full dashboard
-	const { userPlan, workouts } = schedule
-	const completedCount = workouts.filter((w) => w.completed).length
-	const totalCount = workouts.length
-	const progressPercent = Math.round((completedCount / totalCount) * 100)
+	const { userPlan, workouts } = schedule;
+	const completedCount = workouts.filter((w) => w.completed).length;
+	const totalCount = workouts.length;
+	const progressPercent = Math.round((completedCount / totalCount) * 100);
 
-	const today = new Date()
+	const today = new Date();
 	const daysSinceStart = Math.floor(
 		(today.getTime() - new Date(userPlan.startDate).getTime()) /
 			(1000 * 60 * 60 * 24),
-	)
+	);
 	const currentWeek = Math.min(
 		Math.floor(daysSinceStart / 7) + 1,
 		activePlan.plan.durationWeeks,
-	)
-	const thisWeekWorkouts = workouts.filter((w) => w.weekNumber === currentWeek)
-	const thisWeekCompleted = thisWeekWorkouts.filter((w) => w.completed).length
+	);
+	const thisWeekWorkouts = workouts.filter((w) => w.weekNumber === currentWeek);
+	const thisWeekCompleted = thisWeekWorkouts.filter((w) => w.completed).length;
 
-	const upcomingWorkout = workouts.find((w) => !w.completed)
+	const upcomingWorkout = workouts.find((w) => !w.completed);
 
 	return (
 		<main className="max-w-4xl mx-auto px-4 py-8">
 			<div className="mb-8">
 				<h1 className="text-3xl font-bold tracking-tight mb-2">Dashboard</h1>
 				<p className="text-[var(--muted-foreground)]">
-					{activePlan.plan.name} ·{' '}
+					{activePlan.plan.name} ·{" "}
 					{distanceLabels[activePlan.plan.distanceType] ||
 						activePlan.plan.distanceType}
 				</p>
@@ -157,30 +167,19 @@ function HomePage() {
 
 			{upcomingWorkout && (
 				<div className="border border-[var(--border)] p-6 mb-8 rounded">
-					<div className="flex items-center justify-between mb-4">
-						<div>
-							<p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider mb-1">
-								Next Workout
-							</p>
-							<h2 className="text-xl font-semibold">{upcomingWorkout.title}</h2>
-							<p className="text-sm text-[var(--muted-foreground)]">
-								Week {upcomingWorkout.weekNumber} · Day{' '}
-								{upcomingWorkout.dayNumber}
-								{upcomingWorkout.distanceKm &&
-									` · ${upcomingWorkout.distanceKm}K`}
-								{upcomingWorkout.durationMinutes &&
-									` · ${upcomingWorkout.durationMinutes} min`}
-							</p>
-						</div>
-						<Link
-							to="/workouts/$workoutId"
-							search={{ userPlanId: userPlan.id }}
-							params={{ workoutId: String(upcomingWorkout.id) }}
-							className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
-						>
-							Start
-							<ArrowRight className="h-4 w-4" />
-						</Link>
+					<div className="mb-4">
+						<p className="text-xs text-[var(--muted-foreground)] uppercase tracking-wider mb-1">
+							Next Workout
+						</p>
+						<h2 className="text-xl font-semibold">{upcomingWorkout.title}</h2>
+						<p className="text-sm text-[var(--muted-foreground)]">
+							Week {upcomingWorkout.weekNumber} · Day{" "}
+							{upcomingWorkout.dayNumber}
+							{upcomingWorkout.distanceKm &&
+								` · ${upcomingWorkout.distanceKm}K`}
+							{upcomingWorkout.durationMinutes &&
+								` · ${upcomingWorkout.durationMinutes} min`}
+						</p>
 					</div>
 				</div>
 			)}
@@ -201,5 +200,5 @@ function HomePage() {
 				</Link>
 			</div>
 		</main>
-	)
+	);
 }
