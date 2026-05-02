@@ -1,0 +1,16 @@
+<p><b>Burning X</b> is a running tracker built for people who want to follow a plan and see progress without complexity.</p>
+
+<p>Pick a training plan, answer a quick fitness assessment, and get a schedule that adapts to your level. Mark workouts done with a single tap. Track your total distance and estimated calories. That is it.</p>
+
+<p><b>Features:</b></p>
+<ul>
+<li>Multiple training plans (5K, 10K, half marathon)</li>
+<li>Fitness assessment to customize your schedule</li>
+<li>Simple workout tracking — tap a row, mark it done</li>
+<li>Progress stats: distance, calories, completion percentage</li>
+<li>Plan history and the ability to switch plans anytime</li>
+</ul>
+
+<p>No social features. No leaderboards. No data mining. Just you and the road.</p>
+
+<p><i>Note: This app requires an internet connection and a self-hosted backend server.</i></p>

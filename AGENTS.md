@@ -148,6 +148,139 @@ bun db:studio    # Open Drizzle Studio
 - Set the authorized redirect URI to `http://localhost:3000/api/auth/callback/google` (or your production domain).
 - Better Auth handles the rest via `socialProviders.google` in `src/lib/auth.ts`.
 
+## Docker Deployment
+
+The app ships with a production-ready `Dockerfile`. No `docker-compose.yml` is needed — platforms like **Coolify** read the `Dockerfile` directly and manage the container lifecycle.
+
+### How it works
+- Multi-stage build: installs deps (with native module build tools), builds the app, then copies only the output to a slim production image.
+- SQLite database lives at `/data/prod.db` via a Docker volume mount on `/data`.
+- Healthcheck pings `http://localhost:3000` every 30s.
+- Default command: `bun run .output/server/index.mjs`.
+
+### Required environment variables (runtime)
+Set these in your platform's UI (e.g., Coolify → Environment Variables):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `BETTER_AUTH_SECRET` | Yes | Auth signing key |
+| `BETTER_AUTH_URL` | Yes | Public origin of your app |
+| `GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth client secret |
+| `DATABASE_URL` | No | Defaults to `/data/prod.db` |
+| `PORT` | No | Defaults to `3000` |
+| `VITE_POSTHOG_KEY` | No | PostHog project key (optional) |
+
+### Volume mount
+Mount a persistent volume to `/data` so the SQLite database survives container restarts and redeploys.
+
+### First deploy / migrations
+On first deploy, run migrations manually (or override the startup command temporarily):
+```bash
+bun run db:migrate
+```
+After that, the database file persists in the volume.
+
+### Optional: auto-migrations on startup
+If you want migrations to run automatically on every container start, override the command in your platform to use `scripts/docker-start.sh` instead of the default `CMD`.
+
+## Native APK via Capacitor
+
+The app is wrapped as a native Android APK using **Capacitor**. The APK loads the web app from your deployed backend URL (it does not bundle the full frontend — this avoids SSR/static build complexity and keeps the APK small).
+
+### Architecture
+- The APK is a thin native shell with a WebView.
+- On launch, it loads the web app from the URL configured in `capacitor.config.ts`.
+- All server functions, auth, and data work exactly as they do in the browser.
+- The app requires an internet connection.
+
+### Building the APK locally
+
+```bash
+# 1. Set your deployed backend URL
+export CAPACITOR_SERVER_URL=https://your-domain.com
+
+# 2. Sync Capacitor config (regenerates android/ with the URL)
+bunx cap sync
+
+# 3. Build the release APK
+cd android && ./gradlew assembleRelease
+
+# Output: android/app/build/outputs/apk/release/app-release-unsigned.apk
+```
+
+### F-Droid compliance
+- **No proprietary dependencies**: Google Play Services, Firebase, and Crashlytics are removed.
+- The `android/` directory is committed to the repo so F-Droid can build from it directly.
+- `android:usesCleartextTraffic="false"` enforces HTTPS.
+
+## F-Droid Store
+
+### Fastlane metadata
+Store listing metadata lives in `fastlane/metadata/android/en-US/`:
+- `title.txt` — app name
+- `short_description.txt` — <80 chars
+- `full_description.txt` — full store listing (HTML allowed)
+- `images/icon.png` — app icon
+- `images/phoneScreenshots/` — screenshots
+- `changelogs/<versionCode>.txt` — per-version changelog
+
+### Submission workflow
+1. Tag a release: `git tag v1.0.0 && git push origin v1.0.0`
+2. GitHub Actions automatically builds the APK and attaches it to the release.
+3. Fork [`gitlab.com/fdroid/fdroiddata`](https://gitlab.com/fdroid/fdroiddata).
+4. Create `metadata/dev.burningx.app.yml` pointing to this repo.
+5. Open a Merge Request. F-Droid builds from source on their servers.
+
+### F-Droid metadata file example
+
+```yaml
+Categories:
+  - Sports & Health
+License: MIT
+SourceCode: https://github.com/YOUR_ORG/burning-x
+
+RepoType: git
+Repo: https://github.com/YOUR_ORG/burning-x.git
+
+Builds:
+  - versionName: '1.0.0'
+    versionCode: 1
+    commit: v1.0.0
+    subdir: android/app
+    init:
+      - cd ../..
+      - bun install --frozen-lockfile
+      - bunx cap sync
+    gradle:
+      - yes
+    scandelete:
+      - node_modules/
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+```
+
+## CI / GitHub Actions
+
+The `.github/workflows/ci.yml` workflow handles two jobs:
+
+### `docker` job
+- Triggers on every push to `main`.
+- Builds the Docker image and pushes to GHCR (`ghcr.io/YOUR_ORG/burning-x`).
+- Tags: branch name, semver, and short SHA.
+
+### `apk` job
+- Triggers only on version tags (`v*`).
+- Sets up Bun, JDK, and Android SDK.
+- Writes `capacitor.config.ts` with `CAPACITOR_SERVER_URL` from repository variables.
+- Builds the release APK with Gradle.
+- Attaches the APK to the GitHub Release with auto-generated notes.
+
+### Required GitHub configuration
+- **Secret**: `GITHUB_TOKEN` (provided automatically)
+- **Repository variable**: `CAPACITOR_SERVER_URL` — your deployed backend URL (e.g. `https://burningx.yourdomain.com`)
+
 ## Build Checklist
 
 Before committing, always:
