@@ -90,20 +90,20 @@ function HomePage() {
 	}
 
 	// Full dashboard
-	const { userPlan, workouts } = schedule;
+	const { userPlan, startWeek, workouts } = schedule;
+	const fitnessLevel = userPlan.fitnessLevel ?? "beginner";
 	const completedCount = workouts.filter((w) => w.completed).length;
 	const totalCount = workouts.length;
-	const progressPercent = Math.round((completedCount / totalCount) * 100);
+	const progressPercent =
+		totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
 	const today = new Date();
 	const daysSinceStart = Math.floor(
 		(today.getTime() - new Date(userPlan.startDate).getTime()) /
 			(1000 * 60 * 60 * 24),
 	);
-	const currentWeek = Math.min(
-		Math.floor(daysSinceStart / 7) + 1,
-		activePlan.plan.durationWeeks,
-	);
+	const rawCurrentWeek = startWeek + Math.floor(daysSinceStart / 7);
+	const currentWeek = Math.min(rawCurrentWeek, activePlan.plan.durationWeeks);
 	const thisWeekWorkouts = workouts.filter((w) => w.weekNumber === currentWeek);
 	const thisWeekCompleted = thisWeekWorkouts.filter((w) => w.completed).length;
 
@@ -112,12 +112,22 @@ function HomePage() {
 	return (
 		<main className="max-w-4xl mx-auto px-4 py-8">
 			<div className="mb-8">
-				<h1 className="text-3xl font-bold tracking-tight mb-2">Dashboard</h1>
+				<div className="flex items-center gap-3 mb-2">
+					<h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+					<span className="inline-flex items-center px-2 py-0.5 text-xs font-medium border border-[var(--border)] capitalize">
+						{fitnessLevel}
+					</span>
+				</div>
 				<p className="text-[var(--muted-foreground)]">
 					{activePlan.plan.name} ·{" "}
 					{distanceLabels[activePlan.plan.distanceType] ||
 						activePlan.plan.distanceType}
 				</p>
+				{startWeek > 1 && (
+					<p className="text-xs text-[var(--muted-foreground)] mt-1">
+						Plan starts at Week {startWeek} based on your fitness assessment.
+					</p>
+				)}
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-3 mb-8">

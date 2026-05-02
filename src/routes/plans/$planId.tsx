@@ -47,11 +47,28 @@ const workoutTypeLabels: Record<string, string> = {
 	race: "Race Day",
 };
 
+function getStartWeek(
+	fitnessLevel: string | null,
+	durationWeeks: number,
+): number {
+	if (fitnessLevel === "advanced") {
+		return Math.max(1, Math.ceil(durationWeeks * 0.4));
+	}
+	if (fitnessLevel === "intermediate") {
+		return Math.max(1, Math.ceil(durationWeeks * 0.2));
+	}
+	return 1;
+}
+
 function PlanDetailPage() {
 	const { plan, workouts, activePlan } = Route.useLoaderData();
 	const [showAssessment, setShowAssessment] = useState(false);
 	const [enrolling, setEnrolling] = useState(false);
 	const [enrolled, setEnrolled] = useState(activePlan?.planId === plan.id);
+	const [enrollmentResult, setEnrollmentResult] = useState<{
+		fitnessLevel: string;
+		startWeek: number;
+	} | null>(null);
 
 	const isEnrolledInThisPlan = activePlan?.planId === plan.id;
 
@@ -66,7 +83,7 @@ function PlanDetailPage() {
 	const handleEnroll = async () => {
 		setEnrolling(true);
 		try {
-			await enrollInPlan({
+			const result = await enrollInPlan({
 				data: {
 					planId: plan.id,
 					assessment: {
@@ -80,6 +97,9 @@ function PlanDetailPage() {
 					},
 				},
 			});
+			const level = result.fitnessLevel ?? "beginner";
+			const startWeek = getStartWeek(level, plan.durationWeeks);
+			setEnrollmentResult({ fitnessLevel: level, startWeek });
 			setEnrolled(true);
 			setShowAssessment(false);
 		} catch (err) {
@@ -135,17 +155,35 @@ function PlanDetailPage() {
 				</div>
 
 				{isEnrolledInThisPlan || enrolled ? (
-					<div className="flex items-center gap-3">
-						<div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm font-medium">
-							<Check className="h-4 w-4" />
-							You're enrolled in this plan
+					<div className="space-y-3">
+						<div className="flex items-center gap-3">
+							<div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm font-medium">
+								<Check className="h-4 w-4" />
+								You're enrolled in this plan
+							</div>
+							<Link
+								to="/schedule"
+								className="inline-flex items-center px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
+							>
+								View Schedule
+							</Link>
 						</div>
-						<Link
-							to="/schedule"
-							className="inline-flex items-center px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity rounded"
-						>
-							View Schedule
-						</Link>
+						{enrollmentResult && enrollmentResult.startWeek > 1 && (
+							<div className="px-4 py-3 bg-[var(--secondary)] border border-[var(--border)] text-sm rounded">
+								<p className="font-medium mb-1">Your plan has been adapted</p>
+								<p className="text-[var(--muted-foreground)]">
+									Based on your assessment, you were rated as{" "}
+									<strong className="capitalize text-[var(--foreground)]">
+										{enrollmentResult.fitnessLevel}
+									</strong>
+									. Your training starts at{" "}
+									<strong className="text-[var(--foreground)]">
+										Week {enrollmentResult.startWeek}
+									</strong>{" "}
+									instead of Week 1.
+								</p>
+							</div>
+						)}
 					</div>
 				) : (
 					<button

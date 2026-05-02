@@ -5,8 +5,8 @@ import {
 	completeWorkout,
 } from "#/lib/plans.ts";
 import { getAuthSession } from "#/lib/auth-server.ts";
-import { useState } from "react";
-import { Check } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Check, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/schedule")({
 	component: SchedulePage,
@@ -40,6 +40,27 @@ const workoutTypeLabels: Record<string, string> = {
 	race: "Race",
 };
 
+function formatPace(
+	distanceKm: number | null,
+	durationMin: number | null,
+): string {
+	if (!distanceKm || !durationMin || distanceKm <= 0) return "—";
+	const pace = durationMin / distanceKm;
+	const m = Math.floor(pace);
+	const s = Math.round((pace - m) * 60);
+	return `${m}:${s.toString().padStart(2, "0")}/km`;
+}
+
+function formatDistance(distanceKm: number | null): string {
+	if (!distanceKm) return "—";
+	return `${distanceKm}K`;
+}
+
+function formatDuration(durationMin: number | null): string {
+	if (!durationMin) return "—";
+	return `${durationMin}m`;
+}
+
 type WorkoutItem = {
 	id: number;
 	weekNumber: number;
@@ -50,7 +71,7 @@ type WorkoutItem = {
 	durationMinutes: number | null;
 	instructions: string | null;
 	completed: boolean;
-	completion: { effortFeedback: string | null; notes: string | null } | null;
+	completion: { effortFeedback: string | null } | null;
 };
 
 function SchedulePage() {
@@ -58,10 +79,23 @@ function SchedulePage() {
 	const [localWorkouts, setLocalWorkouts] = useState<WorkoutItem[] | null>(
 		schedule?.workouts ?? null,
 	);
-	const [completingId, setCompletingId] = useState<number | null>(null);
-	const [effort, setEffort] = useState<"easy" | "moderate" | "hard" | "">("");
-	const [notes, setNotes] = useState("");
-	const [loading, setLoading] = useState(false);
+	const [activeWorkoutId, setActiveWorkoutId] = useState<number | null>(null);
+	const [loadingId, setLoadingId] = useState<number | null>(null);
+
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		function handleClickOutside(e: MouseEvent) {
+			if (
+				containerRef.current &&
+				!containerRef.current.contains(e.target as Node)
+			) {
+				setActiveWorkoutId(null);
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
 
 	if (!activePlan || !schedule || !localWorkouts) {
 		return (
@@ -81,9 +115,9 @@ function SchedulePage() {
 		);
 	}
 
-	const { userPlan } = schedule;
+	const { userPlan, startWeek } = schedule;
+	const fitnessLevel = userPlan.fitnessLevel ?? "beginner";
 
-	// Group by week
 	const weeks: Record<number, WorkoutItem[]> = {};
 	for (const workout of localWorkouts) {
 		if (!weeks[workout.weekNumber]) weeks[workout.weekNumber] = [];
@@ -92,24 +126,28 @@ function SchedulePage() {
 
 	const completedCount = localWorkouts.filter((w) => w.completed).length;
 	const totalCount = localWorkouts.length;
-	const progressPercent = Math.round((completedCount / totalCount) * 100);
+	const progressPercent =
+		totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-	const handleToggleComplete = async (workout: WorkoutItem) => {
-		if (workout.completed) return;
-		setCompletingId(workout.id);
-		setEffort("");
-		setNotes("");
+	const handleRowClick = (workout: WorkoutItem) => {
+		if (workout.completed) {
+			setActiveWorkoutId(null);
+			return;
+		}
+		setActiveWorkoutId(workout.id);
 	};
 
-	const handleConfirmComplete = async (workout: WorkoutItem) => {
-		setLoading(true);
+	const handleSetEffort = async (
+		workout: WorkoutItem,
+		effort: "easy" | "moderate" | "hard" | null,
+	) => {
+		setLoadingId(workout.id);
 		try {
 			await completeWorkout({
 				data: {
 					userPlanId: userPlan.id,
 					workoutId: workout.id,
-					effortFeedback: effort || undefined,
-					notes: notes || undefined,
+					effortFeedback: effort ?? undefined,
 				},
 			});
 			setLocalWorkouts((prev) =>
@@ -120,32 +158,23 @@ function SchedulePage() {
 										...w,
 										completed: true,
 										completion: {
-											effortFeedback: effort || null,
-											notes: notes || null,
+											effortFeedback: effort,
 										},
 									}
 								: w,
 						)
 					: prev,
 			);
-			setCompletingId(null);
-			setEffort("");
-			setNotes("");
+			setActiveWorkoutId(null);
 		} catch (err) {
 			alert(err instanceof Error ? err.message : "Failed to complete");
 		} finally {
-			setLoading(false);
+			setLoadingId(null);
 		}
 	};
 
-	const handleCancelComplete = () => {
-		setCompletingId(null);
-		setEffort("");
-		setNotes("");
-	};
-
 	return (
-		<div className="max-w-4xl mx-auto px-4 py-8">
+		<div className="max-w-4xl mx-auto px-4 py-8" ref={containerRef}>
 			<div className="mb-8">
 				<h1 className="text-3xl font-bold tracking-tight mb-2">
 					{activePlan.plan.name}
@@ -163,9 +192,20 @@ function SchedulePage() {
 					</span>
 				</div>
 
+				{startWeek > 1 && (
+					<div className="mb-4 flex items-center gap-2 px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] text-sm rounded">
+						<Zap className="h-4 w-4 text-[var(--accent)]" />
+						<span>
+							<strong className="capitalize">{fitnessLevel}</strong> fitness
+							level detected. Your plan starts at{" "}
+							<strong>Week {startWeek}</strong> to match your current ability.
+						</span>
+					</div>
+				)}
+
 				<div className="mb-2 flex items-center justify-between text-sm">
 					<span className="font-medium">
-						{completedCount} of {totalCount} workouts completed
+						{completedCount} of {totalCount} workouts done
 					</span>
 					<span className="text-[var(--muted-foreground)]">
 						{progressPercent}%
@@ -201,101 +241,120 @@ function SchedulePage() {
 							</div>
 							<div className="divide-y divide-[var(--border)]">
 								{weekWorkouts.map((workout) => {
-									const isCompleting = completingId === workout.id;
+									const isActive = activeWorkoutId === workout.id;
+									const isLoading = loadingId === workout.id;
 
 									return (
 										<div key={workout.id}>
-											<div className="px-4 py-3 flex items-center justify-between">
-												<div className="flex items-center gap-3">
-													<button
-														onClick={() =>
-															!workout.completed &&
-															handleToggleComplete(workout)
-														}
-														className={`h-8 w-8 flex items-center justify-center rounded-full border transition-colors ${
-															workout.completed
-																? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-																: "bg-[var(--muted)] border-[var(--border)] hover:border-[var(--foreground)]"
-														}`}
-														disabled={workout.completed}
-													>
-														{workout.completed ? (
-															<Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-														) : (
-															<span className="text-xs text-[var(--muted-foreground)]">
-																{workout.dayNumber}
+											<button
+												onClick={() => handleRowClick(workout)}
+												disabled={isLoading}
+												className={`w-full px-4 py-3 flex items-center gap-4 text-left transition-colors ${
+													isActive
+														? "bg-[var(--secondary)]"
+														: "hover:bg-[var(--muted)]"
+												}`}
+											>
+												{/* Checkbox */}
+												<div
+													className={`shrink-0 h-7 w-7 flex items-center justify-center rounded-full border transition-colors ${
+														workout.completed
+															? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+															: "bg-[var(--background)] border-[var(--border)]"
+													}`}
+												>
+													{workout.completed ? (
+														<Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+													) : (
+														<span className="text-xs text-[var(--muted-foreground)]">
+															{workout.dayNumber}
+														</span>
+													)}
+												</div>
+
+												{/* Title */}
+												<div className="flex-1 min-w-0">
+													<p className="text-sm font-medium truncate">
+														{workout.title}
+													</p>
+												</div>
+
+												{/* Objective data */}
+												<div className="hidden sm:flex items-center gap-4 text-xs text-[var(--muted-foreground)] shrink-0">
+													<span className="w-12 text-right font-medium text-[var(--foreground)]">
+														{formatDistance(workout.distanceKm)}
+													</span>
+													<span className="w-12 text-right">
+														{formatDuration(workout.durationMinutes)}
+													</span>
+													<span className="w-16 text-right">
+														{formatPace(
+															workout.distanceKm,
+															workout.durationMinutes,
+														)}
+													</span>
+												</div>
+
+												{/* Type + effort badge */}
+												<div className="flex items-center gap-2 shrink-0 ml-2">
+													<span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium border border-[var(--border)] text-[var(--muted-foreground)]">
+														{workoutTypeLabels[workout.workoutType] ||
+															workout.workoutType}
+													</span>
+													{workout.completed &&
+														workout.completion?.effortFeedback && (
+															<span className="text-xs text-[var(--muted-foreground)] capitalize">
+																· {workout.completion.effortFeedback}
 															</span>
 														)}
-													</button>
-													<div>
-														<div className="flex items-center gap-2">
-															<p className="text-sm font-medium">
-																{workout.title}
-															</p>
-															<span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium border border-[var(--border)] text-[var(--muted-foreground)]">
-																{workoutTypeLabels[workout.workoutType] ||
-																	workout.workoutType}
-															</span>
-														</div>
-														<p className="text-xs text-[var(--muted-foreground)]">
-															{workout.distanceKm && `${workout.distanceKm}K`}
-															{workout.distanceKm &&
-																workout.durationMinutes &&
-																" · "}
-															{workout.durationMinutes &&
-																`${workout.durationMinutes} min`}
-														</p>
-													</div>
 												</div>
+											</button>
+
+											{/* Mobile objective data */}
+											<div className="sm:hidden px-4 pb-2 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
+												<span className="font-medium text-[var(--foreground)]">
+													{formatDistance(workout.distanceKm)}
+												</span>
+												<span>{formatDuration(workout.durationMinutes)}</span>
+												<span>
+													{formatPace(
+														workout.distanceKm,
+														workout.durationMinutes,
+													)}
+												</span>
 											</div>
 
-											{isCompleting && (
-												<div className="px-4 pb-4 pl-14">
-													<div className="border border-[var(--border)] p-4 rounded">
-														<p className="text-sm font-medium mb-3">
-															How did it feel?
-														</p>
-														<div className="flex gap-2 mb-3">
-															{(["easy", "moderate", "hard"] as const).map(
-																(level) => (
-																	<button
-																		key={level}
-																		onClick={() => setEffort(level)}
-																		className={`px-3 py-1.5 text-xs font-medium border rounded transition-colors ${
-																			effort === level
-																				? "bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)]"
-																				: "border-[var(--border)] hover:bg-[var(--secondary)]"
-																		}`}
-																	>
-																		{level.charAt(0).toUpperCase() +
-																			level.slice(1)}
-																	</button>
-																),
-															)}
-														</div>
-														<textarea
-															value={notes}
-															onChange={(e) => setNotes(e.target.value)}
-															rows={2}
-															placeholder="Optional notes..."
-															className="flex w-full border border-[var(--border)] bg-transparent px-3 py-2 text-sm focus:outline-none focus:border-[var(--foreground)] resize-none rounded mb-3"
-														/>
-														<div className="flex gap-2">
+											{/* Effort selector */}
+											{isActive && !workout.completed && (
+												<div className="px-4 pb-3 flex items-center gap-2">
+													<span className="text-xs text-[var(--muted-foreground)] mr-1">
+														Effort:
+													</span>
+													{(["easy", "moderate", "hard"] as const).map(
+														(level) => (
 															<button
-																onClick={handleCancelComplete}
-																className="px-3 py-1.5 text-xs font-medium border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors rounded"
+																key={level}
+																onClick={(e) => {
+																	e.stopPropagation();
+																	handleSetEffort(workout, level);
+																}}
+																disabled={isLoading}
+																className="px-2.5 py-1 text-xs font-medium border border-[var(--border)] hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] hover:border-[var(--primary)] transition-colors disabled:opacity-50 rounded"
 															>
-																Cancel
+																{level.charAt(0).toUpperCase() + level.slice(1)}
 															</button>
-															<button
-																onClick={() => handleConfirmComplete(workout)}
-																disabled={loading}
-																className="px-3 py-1.5 text-xs font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 transition-opacity disabled:opacity-50 rounded"
-															>
-																{loading ? "Saving..." : "Mark Done"}
-															</button>
-														</div>
-													</div>
+														),
+													)}
+													<button
+														onClick={(e) => {
+															e.stopPropagation();
+															handleSetEffort(workout, null);
+														}}
+														disabled={isLoading}
+														className="px-2.5 py-1 text-xs font-medium text-[var(--muted-foreground)] border border-[var(--border)] hover:bg-[var(--secondary)] transition-colors disabled:opacity-50 rounded"
+													>
+														{isLoading ? "..." : "Done"}
+													</button>
 												</div>
 											)}
 										</div>

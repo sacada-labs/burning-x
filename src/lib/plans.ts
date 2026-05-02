@@ -200,6 +200,19 @@ export const enrollInPlan = createServerFn({
 
 // ─── Schedule ─────────────────────────────────────────────────────
 
+function getStartWeek(
+	fitnessLevel: string | null,
+	durationWeeks: number,
+): number {
+	if (fitnessLevel === "advanced") {
+		return Math.max(1, Math.ceil(durationWeeks * 0.4));
+	}
+	if (fitnessLevel === "intermediate") {
+		return Math.max(1, Math.ceil(durationWeeks * 0.2));
+	}
+	return 1;
+}
+
 export const getUserPlanSchedule = createServerFn({
 	method: "GET",
 })
@@ -220,6 +233,11 @@ export const getUserPlanSchedule = createServerFn({
 
 		if (!userPlan) throw new Error("Plan not found");
 
+		const startWeek = getStartWeek(
+			userPlan.fitnessLevel,
+			userPlan.plan.durationWeeks,
+		);
+
 		const planWorkouts = await db.query.workouts.findMany({
 			where: eq(workouts.planId, userPlan.planId),
 			orderBy: (workouts, { asc }) => [
@@ -235,13 +253,18 @@ export const getUserPlanSchedule = createServerFn({
 		const completedWorkoutIds = new Set(completions.map((c) => c.workoutId));
 		const completionMap = new Map(completions.map((c) => [c.workoutId, c]));
 
-		return {
-			userPlan,
-			workouts: planWorkouts.map((w) => ({
+		const visibleWorkouts = planWorkouts
+			.filter((w) => w.weekNumber >= startWeek)
+			.map((w) => ({
 				...w,
 				completed: completedWorkoutIds.has(w.id),
 				completion: completionMap.get(w.id) ?? null,
-			})),
+			}));
+
+		return {
+			userPlan,
+			startWeek,
+			workouts: visibleWorkouts,
 		};
 	});
 
@@ -255,7 +278,6 @@ export const completeWorkout = createServerFn({
 			userPlanId: number;
 			workoutId: number;
 			effortFeedback?: "easy" | "moderate" | "hard";
-			notes?: string;
 		}) => data,
 	)
 	.handler(async ({ data }) => {
@@ -277,7 +299,6 @@ export const completeWorkout = createServerFn({
 				userPlanId: data.userPlanId,
 				workoutId: data.workoutId,
 				effortFeedback: data.effortFeedback ?? null,
-				notes: data.notes ?? null,
 			})
 			.returning();
 
