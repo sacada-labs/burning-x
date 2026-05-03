@@ -2,7 +2,7 @@ FROM oven/bun:1
 
 WORKDIR /app
 
-# Install build tools for compiling native addons + curl for healthcheck
+# Install build tools for compiling native addons
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         python3 \
@@ -29,12 +29,10 @@ VOLUME ["/data"]
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOST=0.0.0.0
 ENV DATABASE_URL=/data/prod.db
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:3000/ || exit 1
-
-# Run custom migrations with bun:sqlite, then start server with Bun
-CMD ["sh", "-c", "bun scripts/migrate.ts && bun .output/server/index.mjs"]
+# Use exec so bun is PID 1 and receives signals properly
+CMD ["sh", "-c", "bun scripts/migrate.ts && exec bun .output/server/index.mjs"]

@@ -1,11 +1,3 @@
-# F-Droid Metadata Reference
-
-This file is a reference for submitting Burning X to F-Droid.
-Copy its contents into `metadata/dev.burningx.app.yml` when you fork
-`gitlab.com/fdroid/fdroiddata` and open a merge request.
-
----
-
 Categories:
   - Sports & Health
 License: MIT
@@ -21,6 +13,8 @@ Builds:
     subdir: android/app
     init:
       - cd ../..
+      - curl -fsSL https://bun.sh/install | bash
+      - export PATH="$HOME/.bun/bin:$PATH"
       - bun install --frozen-lockfile
       - bunx cap sync
     gradle:
