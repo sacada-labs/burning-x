@@ -216,32 +216,44 @@ cd android && ./gradlew assembleRelease
 
 ## F-Droid Store
 
+### Prerequisites
+- Open-source license file in repo root (`LICENSE`) — ✅ MIT license included.
+- No proprietary dependencies (Firebase, Play Services, etc.) — ✅ removed from Android build.
+- `android/` directory committed to the repo — ✅ included.
+- Fastlane metadata in `fastlane/metadata/android/en-US/` — ✅ included.
+
 ### Fastlane metadata
 Store listing metadata lives in `fastlane/metadata/android/en-US/`:
 - `title.txt` — app name
 - `short_description.txt` — <80 chars
 - `full_description.txt` — full store listing (HTML allowed)
-- `images/icon.png` — app icon
-- `images/phoneScreenshots/` — screenshots
+- `images/icon.png` — app icon (512x512px recommended)
+- `images/phoneScreenshots/` — at least 2 screenshots
 - `changelogs/<versionCode>.txt` — per-version changelog
 
 ### Submission workflow
-1. Tag a release: `git tag v1.0.0 && git push origin v1.0.0`
-2. GitHub Actions automatically builds the APK and attaches it to the release (for your own distribution).
-3. Fork [`gitlab.com/fdroid/fdroiddata`](https://gitlab.com/fdroid/fdroiddata).
-4. Create `metadata/dev.burningx.app.yml` pointing to this repo.
-5. Open a Merge Request. F-Droid builds from source on their own servers — they do not use your Docker image or GitHub Actions APK.
 
-### F-Droid metadata file example
+**Step 1 — Tag a release**
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+This triggers the GitHub Actions APK build and attaches it to the release (for your own distribution, not for F-Droid).
+
+**Step 2 — Fork F-Droid data repo**
+Go to https://gitlab.com/fdroid/fdroiddata and fork it.
+
+**Step 3 — Create the metadata file**
+In your fork, create `metadata/dev.burningx.app.yml`. A reference copy lives in this repo at `fdroid-metadata/dev.burningx.app.yml`:
 
 ```yaml
 Categories:
   - Sports & Health
 License: MIT
-SourceCode: https://github.com/YOUR_ORG/burning-x
+SourceCode: https://github.com/sacada-labs/burning-x
 
 RepoType: git
-Repo: https://github.com/YOUR_ORG/burning-x.git
+Repo: https://github.com/sacada-labs/burning-x.git
 
 Builds:
   - versionName: '1.0.0'
@@ -260,6 +272,20 @@ Builds:
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 ```
+
+**Step 4 — Open a Merge Request**
+Commit the YAML file and open an MR to `gitlab.com/fdroid/fdroiddata`.
+
+**Step 5 — Wait for review**
+F-Droid maintainers will review your MR, verify the build works on their servers, and merge it. Your app appears on f-droid.org within 24-48 hours after merge.
+
+### How F-Droid updates work
+F-Droid's bot (`fdroid checkupdates`) scans your repo for new tags daily. When it finds a new `v*` tag with an incremented `versionCode` in `android/app/build.gradle`, it automatically opens an update MR. No action needed from you.
+
+### Important notes
+- F-Droid builds from source on their own servers. They do not use your Docker image, GitHub Actions APK, or any prebuilt binaries.
+- The `versionCode` in `android/app/build.gradle` must be incremented for every release, or F-Droid will skip the update.
+- The `commit:` field in the metadata must match the exact git tag or commit hash.
 
 ## CI / GitHub Actions
 
