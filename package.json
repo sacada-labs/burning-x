@@ -6,7 +6,7 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "bunx --bun vite dev --port 3000",
     "build": "vite build",
     "start": "bun .output/server/index.mjs",
     "preview": "vite preview",
@@ -67,6 +67,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "bun-types": "^1.3.13",
     "dotenv": "^17.4.2",
     "jsdom": "^28.1.0",
     "puppeteer": "^24.42.0",
