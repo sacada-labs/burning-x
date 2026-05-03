@@ -50,7 +50,7 @@ jobs:
           const config: CapacitorConfig = {
             appId: "dev.burningx.app",
             appName: "Burning X",
-            webDir: "dist",
+            webDir: ".output/public",
             server: {
               url: "${{ vars.CAPACITOR_SERVER_URL }}",
               cleartext: false,
