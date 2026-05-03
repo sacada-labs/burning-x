@@ -2,7 +2,7 @@ FROM oven/bun:1
 
 WORKDIR /app
 
-# Install build tools for compiling better-sqlite3 native addon
+# Install build tools for compiling native addons + curl for healthcheck
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         python3 \
@@ -36,5 +36,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:3000/ || exit 1
 
-# Just start the server — no migrations for now
-CMD ["bun", ".output/server/index.mjs"]
+# Run custom migrations with bun:sqlite, then start server with Bun
+CMD ["sh", "-c", "bun scripts/migrate.ts && bun .output/server/index.mjs"]
