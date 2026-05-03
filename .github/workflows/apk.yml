@@ -38,6 +38,19 @@ jobs:
       - name: Build web app
         run: bun run build
 
+      - name: Create fallback index.html for Capacitor
+        run: |
+          mkdir -p .output/public
+          cat > .output/public/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head><meta charset="utf-8"><title>Burning X</title></head>
+            <body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+              <div>Loading Burning X...</div>
+            </body>
+          </html>
+          EOF
+
       - name: Create local.properties
         run: |
           mkdir -p ~/.android
