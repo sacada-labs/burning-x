@@ -1,34 +1,34 @@
-import { defineConfig } from 'vite'
-import { devtools } from '@tanstack/devtools-vite'
-import { tanstackStart } from '@tanstack/react-start/plugin/vite'
-import viteReact from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { nitro } from 'nitro/vite'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig } from "vite";
+import { devtools } from "@tanstack/devtools-vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { nitro } from "nitro/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 const config = defineConfig({
 	resolve: { tsconfigPaths: true },
 	build: {
-		outDir: '.output/public',
+		outDir: ".output/public",
 	},
 	plugins: [
 		devtools(),
-		nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+    nitro({ preset: "node-server", rollupConfig: { external: [/^@sentry\//] } }),
 		tailwindcss(),
 		tanstackStart(),
 		viteReact(),
 		VitePWA({
-			registerType: 'autoUpdate',
-			injectRegister: 'auto',
+			registerType: "autoUpdate",
+			injectRegister: "auto",
 			manifest: false,
 			workbox: {
-				globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+				globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
 				runtimeCaching: [
 					{
 						urlPattern: /\.(?:js|css|html|png|svg|ico|woff2)$/,
-						handler: 'StaleWhileRevalidate',
+						handler: "StaleWhileRevalidate",
 						options: {
-							cacheName: 'static-assets',
+							cacheName: "static-assets",
 							expiration: {
 								maxEntries: 100,
 								maxAgeSeconds: 60 * 60 * 24 * 30,
@@ -37,9 +37,9 @@ const config = defineConfig({
 					},
 					{
 						urlPattern: /\/api\//,
-						handler: 'NetworkFirst',
+						handler: "NetworkFirst",
 						options: {
-							cacheName: 'api-cache',
+							cacheName: "api-cache",
 							expiration: {
 								maxEntries: 50,
 								maxAgeSeconds: 60 * 60 * 24,
@@ -51,10 +51,10 @@ const config = defineConfig({
 			},
 			devOptions: {
 				enabled: true,
-				type: 'module',
+				type: "module",
 			},
 		}),
 	],
-})
+});
 
-export default config
+export default config;

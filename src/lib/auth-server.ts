@@ -1,8 +1,8 @@
-import { createServerFn } from '@tanstack/react-start'
-import { getSession } from './session.ts'
+import { createServerFn } from "@tanstack/react-start";
+import { getSession } from "./session.ts";
 
-export const getAuthSession = createServerFn({ method: 'GET' }).handler(
+export const getAuthSession = createServerFn({ method: "GET" }).handler(
 	async () => {
-		return getSession()
+		return getSession();
 	},
-)
+);
