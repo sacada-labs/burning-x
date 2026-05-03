@@ -227,10 +227,10 @@ Store listing metadata lives in `fastlane/metadata/android/en-US/`:
 
 ### Submission workflow
 1. Tag a release: `git tag v1.0.0 && git push origin v1.0.0`
-2. GitHub Actions automatically builds the APK and attaches it to the release.
+2. GitHub Actions automatically builds the APK and attaches it to the release (for your own distribution).
 3. Fork [`gitlab.com/fdroid/fdroiddata`](https://gitlab.com/fdroid/fdroiddata).
 4. Create `metadata/dev.burningx.app.yml` pointing to this repo.
-5. Open a Merge Request. F-Droid builds from source on their servers.
+5. Open a Merge Request. F-Droid builds from source on their own servers — they do not use your Docker image or GitHub Actions APK.
 
 ### F-Droid metadata file example
 
@@ -263,23 +263,22 @@ UpdateCheckMode: Tags
 
 ## CI / GitHub Actions
 
-The `.github/workflows/ci.yml` workflow handles two jobs:
+The `.github/workflows/apk.yml` workflow builds the Android APK and attaches it to GitHub Releases. It triggers only on version tags (`v*`).
 
-### `docker` job
-- Triggers on every push to `main`.
-- Builds the Docker image and pushes to GHCR (`ghcr.io/YOUR_ORG/burning-x`).
-- Tags: branch name, semver, and short SHA.
+### What it does
+1. Sets up Bun, JDK 21, and Android SDK
+2. Writes `capacitor.config.ts` with `CAPACITOR_SERVER_URL` from repository variables
+3. Runs `bunx cap sync` to populate the Android project
+4. Builds the release APK with Gradle (`./gradlew assembleRelease`)
+5. Attaches `burning-x-v1.0.0.apk` to the GitHub Release with auto-generated notes
 
-### `apk` job
-- Triggers only on version tags (`v*`).
-- Sets up Bun, JDK, and Android SDK.
-- Writes `capacitor.config.ts` with `CAPACITOR_SERVER_URL` from repository variables.
-- Builds the release APK with Gradle.
-- Attaches the APK to the GitHub Release with auto-generated notes.
+### What it does NOT do
+- **No Docker image build.** Coolify builds directly from the `Dockerfile` in the repo. No GHCR or container registry is needed.
+- **No F-Droid build.** F-Droid has its own build servers. They clone your repo and build the APK themselves. This workflow is only for your own convenience (direct downloads from GitHub Releases).
 
 ### Required GitHub configuration
-- **Secret**: `GITHUB_TOKEN` (provided automatically)
 - **Repository variable**: `CAPACITOR_SERVER_URL` — your deployed backend URL (e.g. `https://burningx.yourdomain.com`)
+- **Secret**: `GITHUB_TOKEN` (provided automatically)
 
 ## Build Checklist
 
