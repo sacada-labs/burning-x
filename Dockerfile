@@ -60,4 +60,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 
 # Default: start the Nitro server directly.
 # Override this CMD with scripts/docker-start.sh if you want auto-migrations.
-CMD ["bun", "run", ".output/server/index.mjs"]
+CMD ["bun", ".output/server/index.mjs"]
