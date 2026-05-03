@@ -27,7 +27,6 @@ RUN bun install --frozen-lockfile
 # NITRO_PRESET=node-server ensures the output works with Node, not Bun
 COPY . .
 ENV NODE_ENV=production
-ENV NITRO_PRESET=node-server
 RUN bun run build
 
 # SQLite database directory
