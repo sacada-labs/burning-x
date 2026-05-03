@@ -45,10 +45,6 @@ COPY --from=build /app/.output ./.output
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 
-# Optionally include migration files if they exist.
-# BuildKit ignores the COPY when the source does not exist.
-COPY --from=build /app/drizzle ./drizzle
-
 # SQLite lives on a volume so the DB survives container restarts.
 RUN mkdir -p /data
 VOLUME ["/data"]
