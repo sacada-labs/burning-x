@@ -1,90 +1,70 @@
 #!/usr/bin/env bun
+/**
+ * Take mobile screenshots for F-Droid store listing.
+ * Uses the already-running dev server at localhost:3000.
+ * Sets x-screenshot-mode header to bypass auth and show logged-in UI.
+ * Viewport: iPhone 14 (390x844 @ 2x DPR) for crisp mobile screenshots.
+ */
 import puppeteer from "puppeteer";
-import { spawn } from "node:child_process";
 import { setTimeout } from "node:timers/promises";
 
-const PORT = 3458;
-const BASE_URL = `http://localhost:${PORT}`;
+const BASE_URL = "http://localhost:3000";
 const OUTPUT_DIR = "fastlane/metadata/android/en-US/images/phoneScreenshots";
 
-async function waitForServer(url) {
-	for (let i = 0; i < 60; i++) {
-		try {
-			const res = await fetch(url);
-			if (res.ok) return;
-		} catch {}
-		await setTimeout(1000);
-	}
-	throw new Error("Server timeout");
-}
+const shots = [
+	{ path: "/auth", name: "1-auth", desc: "Sign in" },
+	{ path: "/about", name: "2-about", desc: "About" },
+	{ path: "/", name: "3-dashboard", desc: "Dashboard" },
+	{ path: "/plans", name: "4-plans", desc: "Training Plans" },
+	{ path: "/plans/1", name: "5-plan-detail", desc: "Plan Detail" },
+	{ path: "/schedule", name: "6-schedule", desc: "Schedule" },
+	{ path: "/history", name: "7-history", desc: "History" },
+	{ path: "/settings", name: "8-settings", desc: "Settings" },
+];
 
 async function main() {
-	console.log("Building app...");
-	const build = spawn("bun", ["run", "build"], { stdio: "pipe" });
-	let buildOutput = "";
-	build.stdout.on("data", (d) => { buildOutput += d; });
-	build.stderr.on("data", (d) => { buildOutput += d; });
-	await new Promise((resolve, reject) => {
-		build.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`Build failed: ${code}`))));
+	console.log("📱 Taking mobile screenshots (logged-in mode)...");
+
+	const browser = await puppeteer.launch({
+		headless: "new",
+		defaultViewport: { width: 390, height: 844, deviceScaleFactor: 2 },
 	});
 
-	console.log("Starting production server...");
-	const server = spawn("bun", [".output/server/index.mjs"], {
-		stdio: "pipe",
-		env: {
-			...process.env,
-			PORT: String(PORT),
-			BETTER_AUTH_SECRET: "screenshot-secret-not-for-production",
-			BETTER_AUTH_URL: BASE_URL,
-			DATABASE_URL: ":memory:",
-		},
+	const page = await browser.newPage();
+
+	// Emulate mobile UA
+	await page.setUserAgent(
+		"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+	);
+
+	// Set screenshot bypass header on every request
+	await page.setExtraHTTPHeaders({
+		"x-screenshot-mode": "1",
 	});
-	let serverOutput = "";
-	server.stdout.on("data", (d) => { serverOutput += d; });
-	server.stderr.on("data", (d) => { serverOutput += d; });
 
-	try {
-		await waitForServer(BASE_URL);
-		console.log("Server ready, taking screenshots...");
-
-		const browser = await puppeteer.launch({
-			headless: "new",
-			defaultViewport: { width: 390, height: 844, deviceScaleFactor: 2 },
+	for (const shot of shots) {
+		console.log(`📷 ${shot.desc} (${shot.path})...`);
+		try {
+			await page.goto(`${BASE_URL}${shot.path}`, {
+				waitUntil: "networkidle0",
+				timeout: 10000,
+			});
+		} catch {
+			// Some pages might error; still capture what we have
+		}
+		await setTimeout(800);
+		await page.screenshot({
+			path: `${OUTPUT_DIR}/${shot.name}.png`,
+			fullPage: false,
 		});
-
-		const page = await browser.newPage();
-
-		// Screenshot 1: Auth page (public)
-		console.log("Screenshot: auth page");
-		await page.goto(`${BASE_URL}/auth`, { waitUntil: "domcontentloaded", timeout: 15000 });
-		await setTimeout(1000);
-		await page.screenshot({ path: `${OUTPUT_DIR}/1-auth.png` });
-
-		// Screenshot 2: About page (public)
-		console.log("Screenshot: about page");
-		await page.goto(`${BASE_URL}/about`, { waitUntil: "domcontentloaded", timeout: 15000 });
-		await setTimeout(1000);
-		await page.screenshot({ path: `${OUTPUT_DIR}/2-about.png` });
-
-		// Screenshot 3: Landing page (redirects to auth, shows the app shell)
-		console.log("Screenshot: landing");
-		await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: 15000 });
-		await setTimeout(1000);
-		await page.screenshot({ path: `${OUTPUT_DIR}/3-landing.png` });
-
-		await browser.close();
-		console.log("Done! Screenshots saved to", OUTPUT_DIR);
-	} catch (err) {
-		console.error("Server output:", serverOutput);
-		throw err;
-	} finally {
-		server.kill("SIGTERM");
-		await setTimeout(1000);
-		if (!server.killed) server.kill("SIGKILL");
+		console.log(`  ✅ Saved ${shot.name}.png`);
 	}
+
+	await browser.close();
+	console.log(`🎉 Done! Screenshots in ${OUTPUT_DIR}`);
 }
 
 main().catch((err) => {
-	console.error(err);
+	console.error("❌", err.message);
 	process.exit(1);
 });
