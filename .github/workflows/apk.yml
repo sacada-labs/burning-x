@@ -58,14 +58,16 @@ jobs:
 
       - name: Write capacitor config with server URL
         run: |
-          cat > capacitor.config.ts << 'EOF'
+          SERVER_URL="${{ vars.CAPACITOR_SERVER_URL }}"
+          SERVER_URL="${SERVER_URL:-https://burning-x.direction-priority.win}"
+          cat > capacitor.config.ts << EOF
           import type { CapacitorConfig } from "@capacitor/cli";
           const config: CapacitorConfig = {
             appId: "dev.burningx.app",
             appName: "Burning X",
             webDir: ".output/public",
             server: {
-              url: "${{ vars.CAPACITOR_SERVER_URL }}",
+              url: "$SERVER_URL",
               cleartext: false,
             },
           };
